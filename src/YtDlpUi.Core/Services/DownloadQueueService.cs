@@ -236,7 +236,14 @@ public sealed class DownloadQueueService : IDownloadQueueService
                 };
                 job.WorkingDirectory = workingDirectory;
 
-                var progress = new Progress<string>(line =>
+                var progress = new SyncLineProgress(HandleOutputLine);
+
+                var result = await _processRunner.RunAsync(invocation, progress, jobCts.Token);
+                ExtractTitleFromLines(job, result.StandardOutput);
+                ExtractTitleFromLines(job, result.StandardError);
+                job.LogOutput = YtDlpLogFormatter.Format(invocation, result);
+
+                void HandleOutputLine(string line)
                 {
                     ApplyProgressUpdate(job, line);
 
@@ -245,10 +252,7 @@ public sealed class DownloadQueueService : IDownloadQueueService
 
                     if (line.Contains("\"title\"", StringComparison.Ordinal) && job.Title is null)
                         TryExtractTitle(job, line);
-                });
-
-                var result = await _processRunner.RunAsync(invocation, progress, jobCts.Token);
-                job.LogOutput = YtDlpLogFormatter.Format(invocation, result);
+                }
 
                 if (job.Status == DownloadStatus.Cancelled || result.WasCancelled)
                 {
@@ -357,6 +361,15 @@ public sealed class DownloadQueueService : IDownloadQueueService
         return profile;
     }
 
+    private static void ExtractTitleFromLines(DownloadJob job, string output)
+    {
+        if (job.Title is not null || string.IsNullOrWhiteSpace(output))
+            return;
+
+        foreach (var line in output.Split('\n'))
+            TryExtractTitle(job, line);
+    }
+
     private static void TryExtractTitle(DownloadJob job, string line)
     {
         const string marker = "\"title\":";
@@ -374,4 +387,9 @@ public sealed class DownloadQueueService : IDownloadQueueService
     }
 
     private void NotifyJobsChanged() => JobsChanged?.Invoke(this, EventArgs.Empty);
+
+    private sealed class SyncLineProgress(Action<string> handler) : IProgress<string>
+    {
+        public void Report(string value) => handler(value);
+    }
 }

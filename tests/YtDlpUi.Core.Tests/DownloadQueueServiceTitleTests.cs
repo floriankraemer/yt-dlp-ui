@@ -1,4 +1,3 @@
-using System.Text.Json;
 using YtDlpUi.Core.Abstractions;
 using YtDlpUi.Core.Models;
 using YtDlpUi.Core.Services;
@@ -8,13 +7,15 @@ namespace YtDlpUi.Core.Tests;
 public sealed class DownloadQueueServiceTitleTests : IDisposable
 {
     private readonly string _root;
+    private readonly ProfileStore _profiles;
+    private readonly AppConfigStore _appConfig;
     private readonly DownloadQueueService _queue;
 
     public DownloadQueueServiceTitleTests()
     {
         _root = Path.Combine(Path.GetTempPath(), "yt-dlp-ui-tests", Guid.NewGuid().ToString("N"));
-        var profiles = new ProfileStore(_root);
-        var appConfig = new AppConfigStore(_root, profiles);
+        _profiles = new ProfileStore(_root);
+        _appConfig = new AppConfigStore(_root, _profiles);
         var catalog = new YtDlpOptionCatalog();
         var ytDlpDir = Path.Combine(_root, "bin", "yt-dlp");
         Directory.CreateDirectory(ytDlpDir);
@@ -23,8 +24,8 @@ public sealed class DownloadQueueServiceTitleTests : IDisposable
         _queue = new DownloadQueueService(
             new TitleRunner(),
             new YtDlpCommandBuilder(catalog, new ExtraArgsTokenizer()),
-            appConfig,
-            profiles,
+            _appConfig,
+            _profiles,
             new BinaryLocator(_root),
             new YouTubeUrlNormalizer(),
             new YtDlpProgressParser(),
@@ -36,31 +37,34 @@ public sealed class DownloadQueueServiceTitleTests : IDisposable
     [Fact]
     public async Task EnqueueAsync_ExtractsTitleFromOutput()
     {
-        await new AppConfigStore(_root, new ProfileStore(_root)).EnsureBootstrapAsync();
-        var config = await new AppConfigStore(_root, new ProfileStore(_root)).LoadAsync();
+        await _appConfig.EnsureBootstrapAsync();
+        var config = await _appConfig.LoadAsync();
         config.YtDlpPath = Path.Combine(_root, "bin", "yt-dlp", "yt-dlp");
         config.DownloadFolder = _root;
-        await new AppConfigStore(_root, new ProfileStore(_root)).SaveAsync(config);
+        await _appConfig.SaveAsync(config);
 
         var job = await _queue.EnqueueAsync("https://www.youtube.com/watch?v=abc", config.ActiveProfileId);
-        await WaitForCompletionAsync(job.Id);
+        var completed = await WaitForJobAsync(job.Id, static j =>
+            j.Status == DownloadStatus.Completed && !string.IsNullOrWhiteSpace(j.Title));
 
-        var completed = _queue.Jobs.Single(j => j.Id == job.Id);
         Assert.Equal("Sample title", completed.Title);
     }
 
-    private async Task WaitForCompletionAsync(Guid jobId)
+    private async Task<DownloadJob> WaitForJobAsync(Guid jobId, Func<DownloadJob, bool> predicate)
     {
         for (var i = 0; i < 100; i++)
         {
             var job = _queue.Jobs.FirstOrDefault(j => j.Id == jobId);
-            if (job is { Status: DownloadStatus.Completed or DownloadStatus.Failed or DownloadStatus.Cancelled })
-                return;
+            if (job is not null && predicate(job))
+                return job;
+
+            if (job is { Status: DownloadStatus.Failed or DownloadStatus.Cancelled })
+                throw new InvalidOperationException($"Job ended as {job.Status} with title '{job.Title ?? "(null)"}'.");
 
             await Task.Delay(50);
         }
 
-        throw new TimeoutException();
+        throw new TimeoutException("Job did not reach the expected state.");
     }
 
     public void Dispose()
@@ -76,9 +80,14 @@ public sealed class DownloadQueueServiceTitleTests : IDisposable
             IProgress<string>? stdoutProgress = null,
             CancellationToken cancellationToken = default)
         {
-            stdoutProgress?.Report("{\"title\": \"Sample title\"}");
+            const string titleLine = "{\"title\": \"Sample title\"}";
+            stdoutProgress?.Report(titleLine);
             stdoutProgress?.Report("download:PROGRESS=100%|SPEED=1MiB/s|ETA=00:00");
-            return Task.FromResult(new YtDlpRunResult { ExitCode = 0 });
+            return Task.FromResult(new YtDlpRunResult
+            {
+                ExitCode = 0,
+                StandardOutput = titleLine,
+            });
         }
     }
 }
