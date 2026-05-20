@@ -7,11 +7,15 @@ public sealed class YtDlpMetadataParser
 {
     public const string ChannelLinePrefix = "ytdlp-ui-channel:";
     public const string TitleLinePrefix = "ytdlp-ui-title:";
-    public const string ChannelPrintTemplate = ChannelLinePrefix + "%(channel,uploader)s";
-    public const string TitlePrintTemplate = TitleLinePrefix + "%(title)s";
+    private const string PrintWhen = "before_dl:";
+    // yt-dlp --print implies --simulate unless a later WHEN stage is used; before_dl runs
+    // immediately before the download so metadata is printed without skipping the download.
+    public const string ChannelPrintTemplate = PrintWhen + ChannelLinePrefix + "%(channel,uploader)s";
+    public const string TitlePrintTemplate = PrintWhen + TitleLinePrefix + "%(title)s";
 
     public static IReadOnlyList<string> BuildPrintArguments() =>
     [
+        "--no-simulate",
         "--print", ChannelPrintTemplate,
         "--print", TitlePrintTemplate,
     ];

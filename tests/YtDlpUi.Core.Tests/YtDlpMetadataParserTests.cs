@@ -80,10 +80,13 @@ public sealed class YtDlpMetadataParserTests
     {
         var args = YtDlpMetadataParser.BuildPrintArguments();
 
-        Assert.Equal(4, args.Count);
-        Assert.Equal("--print", args[0]);
-        Assert.Equal(YtDlpMetadataParser.ChannelPrintTemplate, args[1]);
-        Assert.Equal("--print", args[2]);
-        Assert.Equal(YtDlpMetadataParser.TitlePrintTemplate, args[3]);
+        Assert.Equal(5, args.Count);
+        Assert.Equal("--no-simulate", args[0]);
+        Assert.Equal("--print", args[1]);
+        Assert.Equal(YtDlpMetadataParser.ChannelPrintTemplate, args[2]);
+        Assert.Equal("--print", args[3]);
+        Assert.Equal(YtDlpMetadataParser.TitlePrintTemplate, args[4]);
+        Assert.StartsWith("before_dl:", YtDlpMetadataParser.ChannelPrintTemplate, StringComparison.Ordinal);
+        Assert.StartsWith("before_dl:", YtDlpMetadataParser.TitlePrintTemplate, StringComparison.Ordinal);
     }
 }

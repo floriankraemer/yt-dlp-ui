@@ -59,6 +59,7 @@ public sealed class YtDlpCommandBuilderTests
         var profile = new DownloadProfile { Id = "test", Name = "Test" };
         var args = _builder.Build(profile, null, "https://example.com/v");
 
+        Assert.Contains("--no-simulate", args);
         Assert.Contains("--print", args);
         Assert.Contains(YtDlpMetadataParser.ChannelPrintTemplate, args);
         Assert.Contains(YtDlpMetadataParser.TitlePrintTemplate, args);
