@@ -58,4 +58,49 @@ public sealed class DownloadJobViewModelTests
         vm.Refresh();
         Assert.False(vm.CanCancel);
     }
+
+    [Fact]
+    public void DisplayProperties_ReflectJobState()
+    {
+        var job = new DownloadJob
+        {
+            Url = "https://example.com/watch?v=1",
+            ProfileId = "default",
+            Title = "My Video",
+            Status = DownloadStatus.Failed,
+            Progress = 42,
+            Speed = "2MiB/s",
+            Eta = "00:05",
+            Error = "network error",
+            LogOutput = "ERROR: failed",
+        };
+
+        var vm = new DownloadJobViewModel(job);
+
+        Assert.Equal(job.Url, vm.Url);
+        Assert.Equal("My Video", vm.Title);
+        Assert.Equal("Failed", vm.StatusText);
+        Assert.Equal($"{job.Progress:0}%", vm.ProgressDisplayText);
+        Assert.Equal("2MiB/s", vm.Speed);
+        Assert.Equal("00:05", vm.Eta);
+        Assert.Equal("network error", vm.Error);
+        Assert.Equal("ERROR: failed", vm.LogOutput);
+        Assert.True(vm.CanViewLog);
+        Assert.True(vm.CanStart);
+        Assert.True(vm.CanRemove);
+        Assert.False(vm.CanCancel);
+    }
+
+    [Fact]
+    public void CanStart_WhenQueued()
+    {
+        var job = new DownloadJob
+        {
+            Url = "https://example.com",
+            ProfileId = "default",
+            Status = DownloadStatus.Queued,
+        };
+
+        Assert.True(new DownloadJobViewModel(job).CanStart);
+    }
 }

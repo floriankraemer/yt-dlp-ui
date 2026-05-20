@@ -6,13 +6,16 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.*</Include>
+    <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.DownloadJobViewModel</Include>
+    <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.OptionItemViewModel</Include>
+    <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.OptionSectionViewModel</Include>
+    <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.ViewModelBase</Include>
     <ExcludeByFile>**/Views/**</ExcludeByFile>
     <ExcludeByFile>**/Program.cs</ExcludeByFile>
     <ExcludeByFile>**/App.axaml.cs</ExcludeByFile>
     <ExcludeByFile>**/Services/AppServices.cs</ExcludeByFile>
-    <ExcludeByFile>**/ViewModels/MainWindowViewModel.cs</ExcludeByFile>
-    <ExcludeByFile>**/ViewModels/SettingsViewModel.cs</ExcludeByFile>
+    <ExcludeByFile>**/*MainWindowViewModel.cs</ExcludeByFile>
+    <ExcludeByFile>**/*SettingsViewModel.cs</ExcludeByFile>
     <Threshold>85</Threshold>
     <ThresholdType>line</ThresholdType>
     <ThresholdStat>total</ThresholdStat>

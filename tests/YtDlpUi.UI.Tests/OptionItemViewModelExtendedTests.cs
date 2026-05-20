@@ -40,6 +40,64 @@ public sealed class OptionItemViewModelExtendedTests
     }
 
     [Fact]
+    public void Metadata_ExposesDefinitionFields()
+    {
+        var item = new OptionItemViewModel(
+            new YtDlpOptionDefinition
+            {
+                Flag = "--format",
+                Section = "Video Format",
+                ValueType = "choice",
+                Choices = ["mp4", "webm"],
+                Tooltip = "Output format",
+                DefaultValue = "mp4",
+            },
+            null);
+
+        Assert.Equal("--format", item.Flag);
+        Assert.Equal("Output format", item.Tooltip);
+        Assert.Equal("choice", item.ValueType);
+        Assert.Equal(["mp4", "webm"], item.Choices);
+        Assert.True(item.IsChoice);
+        Assert.Equal("mp4", item.StringValue);
+    }
+
+    [Fact]
+    public void StringValue_SetNonNumericValue_StoresRawString()
+    {
+        var item = new OptionItemViewModel(
+            new YtDlpOptionDefinition
+            {
+                Flag = "-o",
+                Section = "Filesystem",
+                ValueType = "string",
+                Tooltip = "Output template",
+            },
+            "old");
+
+        item.StringValue = "new-template";
+        Assert.Equal("new-template", item.Value);
+        Assert.Equal("new-template", item.StringValue);
+    }
+
+    [Fact]
+    public void ParseDefault_ParsesDoubleDefault()
+    {
+        var item = new OptionItemViewModel(
+            new YtDlpOptionDefinition
+            {
+                Flag = "--sleep-requests",
+                Section = "Workarounds",
+                ValueType = "double",
+                DefaultValue = "2.5",
+                Tooltip = "Sleep",
+            },
+            null);
+
+        Assert.Equal(2.5, item.Value);
+    }
+
+    [Fact]
     public void IsStringOption_FalseForBoolAndChoice()
     {
         var boolItem = new OptionItemViewModel(
