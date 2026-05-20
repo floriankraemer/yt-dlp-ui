@@ -1,0 +1,47 @@
+using YtDlpUi.Core.Abstractions;
+using YtDlpUi.Core.Models;
+
+namespace YtDlpUi.Core.Services;
+
+public sealed class YtDlpBinaryInstaller : IBinaryInstaller
+{
+    private readonly IBinaryReleaseSource _releaseSource;
+    private readonly BinaryLocator _binaryLocator;
+    private readonly BinaryDownloadHelper _downloadHelper;
+    private readonly string _runtimeIdentifier;
+
+    public YtDlpBinaryInstaller(
+        IBinaryReleaseSource releaseSource,
+        BinaryLocator binaryLocator,
+        BinaryDownloadHelper downloadHelper,
+        string? runtimeIdentifier = null)
+    {
+        _releaseSource = releaseSource;
+        _binaryLocator = binaryLocator;
+        _downloadHelper = downloadHelper;
+        _runtimeIdentifier = runtimeIdentifier ?? System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier;
+    }
+
+    public async Task<BinaryInstallResult> InstallAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var asset = _releaseSource.GetYtDlpAsset(_runtimeIdentifier);
+            var destination = _binaryLocator.GetBundledYtDlpPath();
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+
+            await _downloadHelper.DownloadAsync(asset, destination, cancellationToken);
+            BinaryDownloadHelper.MakeExecutable(destination);
+
+            return BinaryInstallResult.Success(destination);
+        }
+        catch (Exception ex)
+        {
+            var existing = _binaryLocator.GetBundledYtDlpPath();
+            if (File.Exists(existing))
+                return BinaryInstallResult.Success(existing);
+
+            return BinaryInstallResult.Failure(ex.Message);
+        }
+    }
+}

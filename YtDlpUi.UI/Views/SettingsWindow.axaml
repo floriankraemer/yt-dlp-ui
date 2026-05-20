@@ -1,0 +1,168 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:YtDlpUi.UI.ViewModels"
+        xmlns:models="clr-namespace:YtDlpUi.Core.Constants;assembly=YtDlpUi.Core"
+        x:Class="YtDlpUi.UI.Views.SettingsWindow"
+        x:DataType="vm:SettingsViewModel"
+        Title="Settings"
+        Width="920"
+        Height="650"
+        MinWidth="720"
+        MinHeight="500">
+  <DockPanel Margin="12">
+    <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
+      <TextBlock Text="{Binding StatusMessage}" Opacity="0.9" />
+      <TextBlock Text="{Binding ValidationError}"
+                 Foreground="{DynamicResource SystemControlErrorTextForegroundBrush}" />
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+        <Button Content="Cancel" Click="Cancel_Click" />
+        <Button Content="Save" Click="Save_Click" />
+      </StackPanel>
+    </StackPanel>
+
+    <Grid ColumnDefinitions="200,*">
+      <Border Grid.Column="0"
+              Padding="0,0,12,0"
+              BorderThickness="0,0,1,0"
+              BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+        <ListBox x:Name="SectionList" />
+      </Border>
+
+      <Panel x:Name="SectionPanelsHost" Grid.Column="1" Margin="12,0,0,0">
+        <ScrollViewer x:Name="BinariesPanel" IsVisible="False">
+          <StackPanel Spacing="16" Margin="8">
+            <StackPanel Spacing="4">
+              <TextBlock Text="Binaries" FontWeight="SemiBold" FontSize="16" />
+              <TextBlock Text="Set paths to yt-dlp, ffmpeg, and a JavaScript runtime for YouTube (required by yt-dlp since 2025.11.12). Leave blank to use tools installed via the main window or found on PATH."
+                         TextWrapping="Wrap"
+                         Opacity="0.8" />
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+              <TextBlock Text="yt-dlp" FontWeight="SemiBold" />
+              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                <TextBox Grid.Column="0"
+                         Watermark="C:\path\to\yt-dlp.exe or /usr/bin/yt-dlp"
+                         Text="{Binding YtDlpPath}" />
+                <Button Grid.Column="1" Content="Browse…" Click="BrowseYtDlp_Click" />
+                <Button Grid.Column="2" Content="Test" Click="TestYtDlp_Click" />
+              </Grid>
+              <TextBlock FontSize="12" Opacity="0.75">
+                <Run Text="Resolved: " />
+                <Run Text="{Binding ResolvedYtDlpPath}" />
+              </TextBlock>
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+              <TextBlock Text="ffmpeg" FontWeight="SemiBold" />
+              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                <TextBox Grid.Column="0"
+                         Watermark="C:\path\to\ffmpeg.exe or /usr/bin/ffmpeg"
+                         Text="{Binding FfmpegPath}" />
+                <Button Grid.Column="1" Content="Browse…" Click="BrowseFfmpeg_Click" />
+                <Button Grid.Column="2" Content="Test" Click="TestFfmpeg_Click" />
+              </Grid>
+              <TextBlock FontSize="12" Opacity="0.75">
+                <Run Text="Resolved: " />
+                <Run Text="{Binding ResolvedFfmpegPath}" />
+              </TextBlock>
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+              <TextBlock Text="JavaScript runtime (YouTube)" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding JsRuntimeDescription}"
+                         TextWrapping="Wrap"
+                         FontSize="12"
+                         Opacity="0.75" />
+              <Grid ColumnDefinitions="220,*" ColumnSpacing="8">
+                <ComboBox Grid.Column="0"
+                          ItemsSource="{Binding JsRuntimeEngineOptions}"
+                          SelectedItem="{Binding SelectedJsRuntimeEngine}"
+                          VerticalAlignment="Center">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:JsRuntimeEngineDefinition">
+                      <TextBlock Text="{Binding DisplayName}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBox Grid.Column="1"
+                         IsEnabled="{Binding IsJsRuntimePathEnabled}"
+                         Watermark="Optional path to runtime executable (e.g. C:\path\to\deno.exe)"
+                         Text="{Binding JsRuntimePath}" />
+              </Grid>
+              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                <TextBlock Grid.Column="0"
+                           FontSize="12"
+                           Opacity="0.75"
+                           VerticalAlignment="Center">
+                  <Run Text="Resolved: " />
+                  <Run Text="{Binding ResolvedJsRuntimePath}" />
+                </TextBlock>
+                <Button Grid.Column="1"
+                        Content="Browse…"
+                        IsEnabled="{Binding IsJsRuntimePathEnabled}"
+                        Click="BrowseJsRuntime_Click" />
+                <Button Grid.Column="2"
+                        Content="Test"
+                        IsEnabled="{Binding IsJsRuntimePathEnabled}"
+                        Click="TestJsRuntime_Click" />
+              </Grid>
+              <TextBlock FontSize="12" Opacity="0.75">
+                <Run Text="yt-dlp argument: " />
+                <Run Text="{Binding JsRuntimesArgumentPreview}" />
+              </TextBlock>
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+
+        <ScrollViewer x:Name="QueuePanel" IsVisible="False">
+          <StackPanel Spacing="16" Margin="8">
+            <StackPanel Spacing="4">
+              <TextBlock Text="Queue" FontWeight="SemiBold" FontSize="16" />
+              <TextBlock Text="Default folder for new downloads. Profile option -P overrides this when set."
+                         TextWrapping="Wrap"
+                         Opacity="0.8" />
+            </StackPanel>
+            <StackPanel Spacing="8">
+              <TextBlock Text="Download folder" FontWeight="SemiBold" />
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <TextBox Grid.Column="0"
+                         Watermark="C:\Users\you\youtube-downloads"
+                         Text="{Binding DownloadFolder}" />
+                <Button Grid.Column="1" Content="Browse…" Click="BrowseDownloadFolder_Click" />
+              </Grid>
+            </StackPanel>
+            <Grid ColumnDefinitions="160,*" RowDefinitions="Auto" RowSpacing="8">
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="Max concurrent downloads" VerticalAlignment="Center" />
+              <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="1" Maximum="8" Value="{Binding MaxConcurrentDownloads}" />
+            </Grid>
+          </StackPanel>
+        </ScrollViewer>
+
+        <Grid x:Name="ProfilesPanel" IsVisible="False" ColumnDefinitions="200,*" Margin="8">
+          <StackPanel Grid.Column="0" Spacing="8">
+            <ListBox x:Name="ProfilesList" ItemsSource="{Binding Profiles}" />
+            <TextBox Watermark="New profile name" Text="{Binding NewProfileName}" />
+            <Button Content="Create profile" Click="CreateProfile_Click" />
+            <Button Content="Duplicate" Click="DuplicateProfile_Click" />
+            <Button Content="Delete" Click="DeleteProfile_Click" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Margin="12,0,0,0" Spacing="8">
+            <TextBlock Text="Profile name" />
+            <TextBox Text="{Binding Profile.Name}" />
+          </StackPanel>
+        </Grid>
+
+        <ScrollViewer x:Name="AdvancedPanel" IsVisible="False">
+          <StackPanel Spacing="8" Margin="8">
+            <TextBlock Text="Extra arguments (quote-aware). Malformed args can break downloads."
+                       TextWrapping="Wrap" Opacity="0.8" />
+            <TextBox AcceptsReturn="True" MinHeight="80" Text="{Binding ExtraArgs}" />
+            <TextBlock Text="CLI preview" FontWeight="SemiBold" />
+            <TextBox IsReadOnly="True" Text="{Binding CliPreview}" TextWrapping="Wrap" MinHeight="100" />
+          </StackPanel>
+        </ScrollViewer>
+      </Panel>
+    </Grid>
+  </DockPanel>
+</Window>

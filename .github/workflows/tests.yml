@@ -1,0 +1,45 @@
+name: Tests
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test:
+    name: Run test suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Run tests
+        run: dotnet test YtDlpUi.slnx -c Release --verbosity normal
+
+  coverage:
+    name: Coverage gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Test with coverage
+        run: |
+          dotnet test YtDlpUi.slnx -c Release --verbosity minimal \
+            /p:CollectCoverage=true \
+            /p:CoverletOutput=./artifacts/coverage/ \
+            /p:CoverletOutputFormat=cobertura

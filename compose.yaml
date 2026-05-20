@@ -1,0 +1,19 @@
+# Bind-mount the repository at /src and run make targets (parity with make.ps1).
+#
+# Docker Compose v2:
+#   docker compose build
+#   docker compose run --rm dev make ci
+#
+# Replace `make ci` with any Makefile target (help, test, coverage, publish-ui, …).
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: yt-dlp-ui-dev:latest
+    # Avoid creating a project bridge network (exhausts Docker address pools when many compose projects exist).
+    network_mode: host
+    working_dir: /src
+    volumes:
+      - .:/src

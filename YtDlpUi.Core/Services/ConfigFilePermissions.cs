@@ -1,0 +1,23 @@
+namespace YtDlpUi.Core.Services;
+
+public static class ConfigFilePermissions
+{
+    public static void ApplyRestrictedPermissions(string path, bool isDirectory)
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+            return;
+
+        try
+        {
+            var mode = isDirectory
+                ? UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
+                : UnixFileMode.UserRead | UnixFileMode.UserWrite;
+
+            File.SetUnixFileMode(path, mode);
+        }
+        catch
+        {
+            // Best effort on platforms that support it.
+        }
+    }
+}

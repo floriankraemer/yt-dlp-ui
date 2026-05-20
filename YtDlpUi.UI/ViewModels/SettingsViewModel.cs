@@ -1,0 +1,341 @@
+using System.Collections.ObjectModel;
+using YtDlpUi.Core.Abstractions;
+using YtDlpUi.Core.Constants;
+using YtDlpUi.Core.Models;
+using YtDlpUi.Core.Services;
+
+namespace YtDlpUi.UI.ViewModels;
+
+public sealed class SettingsViewModel : ViewModelBase
+{
+    private readonly SettingsCoordinator _coordinator;
+    private readonly YtDlpOptionCatalog _catalog;
+    private readonly IProfileStore _profileStore;
+    private readonly DownloadFolderService _downloadFolderService;
+
+    private AppConfiguration _config = new();
+    private DownloadProfile _profile = new() { Id = "default", Name = "Default" };
+    private string? _validationError;
+    private string? _statusMessage;
+    private string _cliPreview = string.Empty;
+    private string _newProfileName = string.Empty;
+    private JsRuntimeEngineDefinition _selectedJsRuntime = JsRuntimeEngines.All[0];
+
+    public SettingsViewModel(
+        SettingsCoordinator coordinator,
+        YtDlpOptionCatalog catalog,
+        IProfileStore profileStore,
+        DownloadFolderService downloadFolderService)
+    {
+        _coordinator = coordinator;
+        _catalog = catalog;
+        _profileStore = profileStore;
+        _downloadFolderService = downloadFolderService;
+        Profiles = new ObservableCollection<DownloadProfile>();
+        OptionSections = new ObservableCollection<OptionSectionViewModel>();
+    }
+
+    public ObservableCollection<DownloadProfile> Profiles { get; }
+    public ObservableCollection<OptionSectionViewModel> OptionSections { get; }
+    public IReadOnlyList<JsRuntimeEngineDefinition> JsRuntimeEngineOptions => JsRuntimeEngines.All;
+    public IReadOnlyList<string> Sections => _catalog.GetSections();
+
+    public AppConfiguration Config
+    {
+        get => _config;
+        private set => SetProperty(ref _config, value);
+    }
+
+    public DownloadProfile Profile
+    {
+        get => _profile;
+        private set
+        {
+            if (SetProperty(ref _profile, value))
+            {
+                RebuildOptionSections();
+                UpdateCliPreview();
+            }
+        }
+    }
+
+    public string? ValidationError
+    {
+        get => _validationError;
+        set => SetProperty(ref _validationError, value);
+    }
+
+    public string? StatusMessage
+    {
+        get => _statusMessage;
+        set => SetProperty(ref _statusMessage, value);
+    }
+
+    public string CliPreview
+    {
+        get => _cliPreview;
+        private set => SetProperty(ref _cliPreview, value);
+    }
+
+    public string NewProfileName
+    {
+        get => _newProfileName;
+        set => SetProperty(ref _newProfileName, value);
+    }
+
+    public int MaxConcurrentDownloads
+    {
+        get => Config.MaxConcurrentDownloads;
+        set
+        {
+            Config.MaxConcurrentDownloads = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string? DownloadFolder
+    {
+        get => Config.DownloadFolder ?? string.Empty;
+        set
+        {
+            Config.DownloadFolder = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string? YtDlpPath
+    {
+        get => Config.YtDlpPath ?? string.Empty;
+        set
+        {
+            Config.YtDlpPath = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ResolvedYtDlpPath));
+            UpdateCliPreview();
+        }
+    }
+
+    public string? FfmpegPath
+    {
+        get => Config.FfmpegPath ?? string.Empty;
+        set
+        {
+            Config.FfmpegPath = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ResolvedFfmpegPath));
+            UpdateCliPreview();
+        }
+    }
+
+    public JsRuntimeEngineDefinition SelectedJsRuntimeEngine
+    {
+        get => _selectedJsRuntime;
+        set
+        {
+            if (!SetProperty(ref _selectedJsRuntime, value))
+                return;
+
+            Config.JsRuntimeEngine = string.IsNullOrEmpty(value.Id) ? null : value.Id;
+            OnPropertyChanged(nameof(JsRuntimeDescription));
+            OnPropertyChanged(nameof(IsJsRuntimePathEnabled));
+            OnPropertyChanged(nameof(ResolvedJsRuntimePath));
+            OnPropertyChanged(nameof(JsRuntimesArgumentPreview));
+            UpdateCliPreview();
+        }
+    }
+
+    public string? JsRuntimePath
+    {
+        get => Config.JsRuntimePath ?? string.Empty;
+        set
+        {
+            Config.JsRuntimePath = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ResolvedJsRuntimePath));
+            OnPropertyChanged(nameof(JsRuntimesArgumentPreview));
+            UpdateCliPreview();
+        }
+    }
+
+    public string JsRuntimeDescription => SelectedJsRuntimeEngine.Description;
+
+    public bool IsJsRuntimePathEnabled => !string.IsNullOrEmpty(SelectedJsRuntimeEngine.Id);
+
+    public string ResolvedJsRuntimePath =>
+        IsJsRuntimePathEnabled
+            ? _coordinator.ResolveJsRuntimePath(Config) ?? "Not found"
+            : "Not configured";
+
+    public string JsRuntimesArgumentPreview =>
+        _coordinator.BuildJsRuntimesArgument(Config) ?? "(not passed to yt-dlp)";
+
+    public string ExtraArgs
+    {
+        get => Profile.ExtraArgs;
+        set
+        {
+            Profile.ExtraArgs = value;
+            OnPropertyChanged();
+            UpdateCliPreview();
+        }
+    }
+
+    public async Task LoadAsync()
+    {
+        var (config, profiles) = await _coordinator.LoadAsync();
+        Config = config;
+        Profiles.Clear();
+        foreach (var profile in profiles)
+            Profiles.Add(profile);
+
+        var active = profiles.FirstOrDefault(p => p.Id == config.ActiveProfileId) ?? profiles[0];
+        Profile = CloneProfile(active);
+        RebuildOptionSections();
+        UpdateCliPreview();
+        _selectedJsRuntime = JsRuntimeEngines.Find(config.JsRuntimeEngine) ?? JsRuntimeEngines.All[0];
+        OnPropertyChanged(nameof(SelectedJsRuntimeEngine));
+        OnPropertyChanged(nameof(JsRuntimeDescription));
+        OnPropertyChanged(nameof(IsJsRuntimePathEnabled));
+        OnPropertyChanged(nameof(ResolvedYtDlpPath));
+        OnPropertyChanged(nameof(ResolvedFfmpegPath));
+        OnPropertyChanged(nameof(ResolvedJsRuntimePath));
+        OnPropertyChanged(nameof(JsRuntimesArgumentPreview));
+    }
+
+    public async Task<bool> SaveAsync()
+    {
+        var errors = _coordinator.Validate(Config, Profile);
+        if (errors.Count > 0)
+        {
+            ValidationError = string.Join(Environment.NewLine, errors);
+            return false;
+        }
+
+        if (!_downloadFolderService.IsConfigured(Config))
+        {
+            ValidationError = "Download folder is required.";
+            return false;
+        }
+
+        if (_downloadFolderService.TryNormalize(Config.DownloadFolder, out var normalized))
+        {
+            Directory.CreateDirectory(normalized);
+            Config.DownloadFolder = normalized;
+        }
+
+        ValidationError = null;
+        await _coordinator.SaveAsync(Config, Profile);
+        return true;
+    }
+
+    public Task SelectProfileAsync(DownloadProfile profile)
+    {
+        Profile = CloneProfile(profile);
+        Config.ActiveProfileId = profile.Id;
+        UpdateCliPreview();
+        return Task.CompletedTask;
+    }
+
+    public async Task CreateProfileAsync()
+    {
+        var name = string.IsNullOrWhiteSpace(NewProfileName) ? "New profile" : NewProfileName.Trim();
+        var profile = new DownloadProfile
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = name,
+            Options = new Dictionary<string, object?>(Profile.Options, StringComparer.Ordinal),
+            ExtraArgs = Profile.ExtraArgs,
+        };
+
+        await _profileStore.SaveAsync(profile);
+        NewProfileName = string.Empty;
+        await LoadAsync();
+        await SelectProfileAsync(profile);
+    }
+
+    public async Task DuplicateProfileAsync()
+    {
+        var duplicate = await _coordinator.DuplicateProfileAsync(Profile.Id);
+        await LoadAsync();
+        await SelectProfileAsync(duplicate);
+    }
+
+    public async Task DeleteProfileAsync()
+    {
+        await _coordinator.DeleteProfileAsync(Profile.Id);
+        await LoadAsync();
+        if (Profiles.Count > 0)
+            await SelectProfileAsync(Profiles[0]);
+    }
+
+    public Task<string?> TestYtDlpAsync() => _coordinator.TestYtDlpAsync(Config);
+
+    public Task<string?> TestFfmpegAsync() => _coordinator.TestFfmpegAsync(Config);
+
+    public Task<string?> TestJsRuntimeAsync() => _coordinator.TestJsRuntimeAsync(Config);
+
+    public string ResolvedYtDlpPath => _coordinator.ResolveYtDlpPath(Config) ?? "Not found";
+
+    public string ResolvedFfmpegPath => _coordinator.ResolveFfmpegPath(Config) ?? "Not found";
+
+    public void ApplyTestResult(string toolName, string? result)
+    {
+        if (string.IsNullOrWhiteSpace(result))
+        {
+            ValidationError = $"{toolName} test failed.";
+            StatusMessage = null;
+            return;
+        }
+
+        if (result.Contains("not found", StringComparison.OrdinalIgnoreCase)
+            || result.Contains("failed", StringComparison.OrdinalIgnoreCase))
+        {
+            ValidationError = result;
+            StatusMessage = null;
+            return;
+        }
+
+        ValidationError = null;
+        StatusMessage = $"{toolName}: {result}";
+        OnPropertyChanged(nameof(ResolvedYtDlpPath));
+        OnPropertyChanged(nameof(ResolvedFfmpegPath));
+        OnPropertyChanged(nameof(ResolvedJsRuntimePath));
+        OnPropertyChanged(nameof(JsRuntimesArgumentPreview));
+    }
+
+    public void OnOptionChanged() => UpdateCliPreview();
+
+    private void RebuildOptionSections()
+    {
+        OptionSections.Clear();
+        foreach (var section in Sections)
+        {
+            var items = _catalog.GetBySection(section)
+                .Select(def =>
+                {
+                    Profile.Options.TryGetValue(def.Flag, out var value);
+                    var item = new OptionItemViewModel(def, value);
+                    item.PropertyChanged += (_, _) =>
+                    {
+                        Profile.Options[def.Flag] = item.Value;
+                        OnOptionChanged();
+                    };
+                    return item;
+                })
+                .ToList();
+
+            OptionSections.Add(new OptionSectionViewModel(section, items));
+        }
+    }
+
+    private void UpdateCliPreview() => CliPreview = _coordinator.BuildCliPreview(Config, Profile);
+
+    private static DownloadProfile CloneProfile(DownloadProfile source) => new()
+    {
+        Id = source.Id,
+        Name = source.Name,
+        ExtraArgs = source.ExtraArgs,
+        SchemaVersion = source.SchemaVersion,
+        Options = new Dictionary<string, object?>(source.Options, StringComparer.Ordinal),
+    };
+}

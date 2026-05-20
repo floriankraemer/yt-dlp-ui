@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "[0-9]*.[0-9]*.[0-9]*"
+      - "[0-9]*.[0-9]*.[0-9]*-*"
+
+jobs:
+  release:
+    name: Build and publish UI release assets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish UI for each RID
+        run: |
+          set -euxo pipefail
+          for rid in win-x64 linux-x64 osx-x64 osx-arm64; do
+            dotnet publish YtDlpUi.UI/YtDlpUi.UI.csproj \
+              -c Release \
+              -r "$rid" \
+              --self-contained true \
+              -o "dist/$rid" \
+              /p:PublishSingleFile=true
+            ui_name=YtDlpUi
+            if [ "$rid" = "win-x64" ]; then ui_name=YtDlpUi.exe; fi
+            if [ -f "dist/$rid/YtDlpUi.UI" ]; then mv "dist/$rid/YtDlpUi.UI" "dist/$rid/$ui_name"; fi
+            if [ -f "dist/$rid/YtDlpUi.UI.exe" ]; then mv "dist/$rid/YtDlpUi.UI.exe" "dist/$rid/$ui_name"; fi
+          done
+
+      - name: Package archives
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euxo pipefail
+          mkdir -p release
+          (cd dist/win-x64 && zip -r "../../release/YtDlpUi-${TAG}-win-x64.zip" .)
+          tar -czvf "release/YtDlpUi-${TAG}-linux-x64.tar.gz" -C dist/linux-x64 .
+          tar -czvf "release/YtDlpUi-${TAG}-osx-x64.tar.gz" -C dist/osx-x64 .
+          tar -czvf "release/YtDlpUi-${TAG}-osx-arm64.tar.gz" -C dist/osx-arm64 .
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Yt-dlp-ui ${{ github.ref_name }}
+          files: release/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true
