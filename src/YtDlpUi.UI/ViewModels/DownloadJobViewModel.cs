@@ -11,7 +11,7 @@ public sealed class DownloadJobViewModel : ViewModelBase
 
     public Guid Id => _job.Id;
     public string Url => _job.Url;
-    public string? Title => string.IsNullOrWhiteSpace(_job.Title) ? _job.Url : _job.Title;
+    public string? Title => YtDlpMetadataParser.FormatQueueTitle(_job);
     public DownloadStatus Status => _job.Status;
     public string StatusText => Status switch
     {

@@ -30,6 +30,7 @@ public sealed class DownloadQueueServiceTitleTests : IDisposable
             new YouTubeUrlNormalizer(),
             new YtDlpProgressParser(),
             new YtDlpOutputPathParser(),
+            new YtDlpMetadataParser(),
             new DownloadFolderService(),
             new JsRuntimeLocator());
     }
@@ -45,8 +46,11 @@ public sealed class DownloadQueueServiceTitleTests : IDisposable
 
         var job = await _queue.EnqueueAsync("https://www.youtube.com/watch?v=abc", config.ActiveProfileId);
         var completed = await WaitForJobAsync(job.Id, static j =>
-            j.Status == DownloadStatus.Completed && !string.IsNullOrWhiteSpace(j.Title));
+            j.Status == DownloadStatus.Completed
+            && !string.IsNullOrWhiteSpace(j.Title)
+            && !string.IsNullOrWhiteSpace(j.Channel));
 
+        Assert.Equal("Sample Channel", completed.Channel);
         Assert.Equal("Sample title", completed.Title);
     }
 
@@ -80,13 +84,15 @@ public sealed class DownloadQueueServiceTitleTests : IDisposable
             IProgress<string>? stdoutProgress = null,
             CancellationToken cancellationToken = default)
         {
-            const string titleLine = "{\"title\": \"Sample title\"}";
+            const string channelLine = "ytdlp-ui-channel:Sample Channel";
+            const string titleLine = "ytdlp-ui-title:Sample title";
+            stdoutProgress?.Report(channelLine);
             stdoutProgress?.Report(titleLine);
             stdoutProgress?.Report("download:PROGRESS=100%|SPEED=1MiB/s|ETA=00:00");
             return Task.FromResult(new YtDlpRunResult
             {
                 ExitCode = 0,
-                StandardOutput = titleLine,
+                StandardOutput = $"{channelLine}\n{titleLine}",
             });
         }
     }

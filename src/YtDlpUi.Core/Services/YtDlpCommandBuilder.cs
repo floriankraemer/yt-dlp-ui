@@ -33,6 +33,7 @@ public sealed class YtDlpCommandBuilder
             YtDlpProgressParser.PostprocessProgressTemplate,
             "--ignore-config",
         };
+        args.AddRange(YtDlpMetadataParser.BuildPrintArguments());
 
         if (!string.IsNullOrWhiteSpace(ffmpegPath))
         {

@@ -28,6 +28,7 @@ public sealed class DownloadQueueServiceExceptionTests : IDisposable
             new YouTubeUrlNormalizer(),
             new YtDlpProgressParser(),
             new YtDlpOutputPathParser(),
+            new YtDlpMetadataParser(),
             new DownloadFolderService(),
             new JsRuntimeLocator());
     }

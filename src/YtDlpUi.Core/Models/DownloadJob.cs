@@ -4,6 +4,7 @@ public sealed class DownloadJob
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public required string Url { get; init; }
+    public string? Channel { get; set; }
     public string? Title { get; set; }
     public DownloadStatus Status { get; set; } = DownloadStatus.Queued;
     public double Progress { get; set; }

@@ -18,6 +18,7 @@ public sealed class DownloadQueueService : IDownloadQueueService
     private readonly YouTubeUrlNormalizer _urlNormalizer;
     private readonly YtDlpProgressParser _progressParser;
     private readonly YtDlpOutputPathParser _outputPathParser;
+    private readonly YtDlpMetadataParser _metadataParser;
     private readonly DownloadFolderService _downloadFolderService;
     private readonly JsRuntimeLocator _jsRuntimeLocator;
     private readonly ConcurrentDictionary<Guid, DownloadJob> _jobs = new();
@@ -37,6 +38,7 @@ public sealed class DownloadQueueService : IDownloadQueueService
         YouTubeUrlNormalizer urlNormalizer,
         YtDlpProgressParser progressParser,
         YtDlpOutputPathParser outputPathParser,
+        YtDlpMetadataParser metadataParser,
         DownloadFolderService downloadFolderService,
         JsRuntimeLocator jsRuntimeLocator)
     {
@@ -48,6 +50,7 @@ public sealed class DownloadQueueService : IDownloadQueueService
         _urlNormalizer = urlNormalizer;
         _progressParser = progressParser;
         _outputPathParser = outputPathParser;
+        _metadataParser = metadataParser;
         _downloadFolderService = downloadFolderService;
         _jsRuntimeLocator = jsRuntimeLocator;
         _concurrencyGate = new SemaphoreSlim(_maxConcurrent, AppPaths.MaxConcurrentDownloadsCap);
@@ -239,8 +242,8 @@ public sealed class DownloadQueueService : IDownloadQueueService
                 var progress = new SyncLineProgress(HandleOutputLine);
 
                 var result = await _processRunner.RunAsync(invocation, progress, jobCts.Token);
-                ExtractTitleFromLines(job, result.StandardOutput);
-                ExtractTitleFromLines(job, result.StandardError);
+                ExtractMetadataFromLines(job, result.StandardOutput);
+                ExtractMetadataFromLines(job, result.StandardError);
                 job.LogOutput = YtDlpLogFormatter.Format(invocation, result);
 
                 void HandleOutputLine(string line)
@@ -250,8 +253,8 @@ public sealed class DownloadQueueService : IDownloadQueueService
                     if (_outputPathParser.TryAddCandidate(line, job.OutputPaths))
                         NotifyJobsChanged();
 
-                    if (line.Contains("\"title\"", StringComparison.Ordinal) && job.Title is null)
-                        TryExtractTitle(job, line);
+                    if (_metadataParser.TryApplyMetadata(job, line))
+                        NotifyJobsChanged();
                 }
 
                 if (job.Status == DownloadStatus.Cancelled || result.WasCancelled)
@@ -361,29 +364,14 @@ public sealed class DownloadQueueService : IDownloadQueueService
         return profile;
     }
 
-    private static void ExtractTitleFromLines(DownloadJob job, string output)
+    private static void ExtractMetadataFromLines(DownloadJob job, string output)
     {
-        if (job.Title is not null || string.IsNullOrWhiteSpace(output))
+        if (string.IsNullOrWhiteSpace(output))
             return;
 
+        var parser = new YtDlpMetadataParser();
         foreach (var line in output.Split('\n'))
-            TryExtractTitle(job, line);
-    }
-
-    private static void TryExtractTitle(DownloadJob job, string line)
-    {
-        const string marker = "\"title\":";
-        var index = line.IndexOf(marker, StringComparison.Ordinal);
-        if (index < 0)
-            return;
-
-        var start = line.IndexOf('"', index + marker.Length);
-        if (start < 0)
-            return;
-
-        var end = line.IndexOf('"', start + 1);
-        if (end > start)
-            job.Title = line[(start + 1)..end];
+            parser.TryApplyMetadata(job, line);
     }
 
     private void NotifyJobsChanged() => JobsChanged?.Invoke(this, EventArgs.Empty);

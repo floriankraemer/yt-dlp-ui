@@ -23,6 +23,7 @@ public sealed class AppServices
         UrlNormalizer = new YouTubeUrlNormalizer();
         ProgressParser = new YtDlpProgressParser();
         OutputPathParser = new YtDlpOutputPathParser();
+        MetadataParser = new YtDlpMetadataParser();
         Validator = new AppSettingsValidator(ExtraArgsTokenizer);
         ReleaseSource = new GitHubBinaryReleaseSource();
         DownloadHelper = new BinaryDownloadHelper();
@@ -37,6 +38,7 @@ public sealed class AppServices
             UrlNormalizer,
             ProgressParser,
             OutputPathParser,
+            MetadataParser,
             DownloadFolderService,
             JsRuntimeLocator);
         YtDlpInstaller = new YtDlpBinaryInstaller(ReleaseSource, BinaryLocator, DownloadHelper);
@@ -54,6 +56,7 @@ public sealed class AppServices
     public YouTubeUrlNormalizer UrlNormalizer { get; }
     public YtDlpProgressParser ProgressParser { get; }
     public YtDlpOutputPathParser OutputPathParser { get; }
+    public YtDlpMetadataParser MetadataParser { get; }
     public AppSettingsValidator Validator { get; }
     public IBinaryReleaseSource ReleaseSource { get; }
     public BinaryDownloadHelper DownloadHelper { get; }

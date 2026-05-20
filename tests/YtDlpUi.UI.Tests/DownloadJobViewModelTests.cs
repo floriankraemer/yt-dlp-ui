@@ -67,6 +67,7 @@ public sealed class DownloadJobViewModelTests
             Url = "https://example.com/watch?v=1",
             ProfileId = "default",
             Title = "My Video",
+            Channel = "My Channel",
             Status = DownloadStatus.Failed,
             Progress = 42,
             Speed = "2MiB/s",
@@ -78,7 +79,7 @@ public sealed class DownloadJobViewModelTests
         var vm = new DownloadJobViewModel(job);
 
         Assert.Equal(job.Url, vm.Url);
-        Assert.Equal("My Video", vm.Title);
+        Assert.Equal("My Channel · My Video", vm.Title);
         Assert.Equal("Failed", vm.StatusText);
         Assert.Equal($"{job.Progress:0}%", vm.ProgressDisplayText);
         Assert.Equal("2MiB/s", vm.Speed);
