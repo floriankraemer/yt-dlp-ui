@@ -8,7 +8,8 @@
         Width="920"
         Height="650"
         MinWidth="720"
-        MinHeight="500">
+        MinHeight="500"
+        WindowStartupLocation="CenterOwner">
   <DockPanel Margin="12">
     <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
       <TextBlock Text="{Binding StatusMessage}" Opacity="0.9" />

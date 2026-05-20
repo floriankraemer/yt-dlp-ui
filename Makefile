@@ -4,7 +4,7 @@
 # Escape hatch: IN_CONTAINER=1 make <target>
 
 SLN := YtDlpUi.slnx
-UI := YtDlpUi.UI/YtDlpUi.UI.csproj
+UI := src/YtDlpUi.UI/YtDlpUi.UI.csproj
 COV_DIR := $(CURDIR)/artifacts/coverage
 UI_APP_NAME := YtDlpUi
 
@@ -99,7 +99,7 @@ coverage:
 
 mutation-test:
 	dotnet tool restore
-	cd YtDlpUi.Core && (command -v dotnet-stryker >/dev/null 2>&1 && dotnet-stryker || dotnet tool run dotnet-stryker)
+	cd src/YtDlpUi.Core && (command -v dotnet-stryker >/dev/null 2>&1 && dotnet-stryker || dotnet tool run dotnet-stryker)
 
 else
 

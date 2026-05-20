@@ -4,10 +4,12 @@
 
 ```
 YtDlpUi.slnx
-├── YtDlpUi.Core/           Business logic (queue, yt-dlp invocation, settings)
-├── YtDlpUi.UI/             Avalonia desktop UI
-├── YtDlpUi.Core.Tests/
-└── YtDlpUi.UI.Tests/
+├── src/
+│   ├── YtDlpUi.Core/           Business logic (queue, yt-dlp invocation, settings)
+│   └── YtDlpUi.UI/             Avalonia desktop UI
+└── tests/
+    ├── YtDlpUi.Core.Tests/
+    └── YtDlpUi.UI.Tests/
 ```
 
 ## Prerequisites

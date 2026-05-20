@@ -31,7 +31,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $Sln = Join-Path $PSScriptRoot "YtDlpUi.slnx"
-$UiProj = Join-Path $PSScriptRoot "YtDlpUi.UI\YtDlpUi.UI.csproj"
+$UiProj = Join-Path $PSScriptRoot "src\YtDlpUi.UI\YtDlpUi.UI.csproj"
 
 function Invoke-DotNet {
     param([Parameter(Mandatory = $true)] [string[]] $Arguments)
@@ -203,7 +203,7 @@ switch ($Target.ToLowerInvariant()) {
         try {
             Invoke-DotNet @("tool", "restore")
             $hasGlobalStryker = $null -ne (Get-Command dotnet-stryker -ErrorAction SilentlyContinue)
-            Push-Location (Join-Path $PSScriptRoot "YtDlpUi.Core")
+            Push-Location (Join-Path $PSScriptRoot "src\YtDlpUi.Core")
             try {
                 if ($hasGlobalStryker) { & dotnet-stryker } else { Invoke-DotNet @("tool", "run", "dotnet-stryker") }
                 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -213,7 +213,7 @@ switch ($Target.ToLowerInvariant()) {
         finally { Pop-Location }
         Write-Host ""
         Write-Host "Mutation testing complete." -ForegroundColor Green
-        Write-Host "  Core HTML: YtDlpUi.Core/StrykerOutput/<run>/reports/mutation-report.html"
+        Write-Host "  Core HTML: src/YtDlpUi.Core/StrykerOutput/<run>/reports/mutation-report.html"
     }
     default {
         Write-Host "Unknown target: $Target" -ForegroundColor Red

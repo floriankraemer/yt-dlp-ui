@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\YtDlpUi.UI\YtDlpUi.UI.csproj" />
+    <ProjectReference Include="..\..\src\YtDlpUi.UI\YtDlpUi.UI.csproj" />
   </ItemGroup>
 
 </Project>

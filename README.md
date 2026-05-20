@@ -64,10 +64,12 @@ More: [docs/build.md](docs/build.md).
 
 ```
 YtDlpUi.slnx
-├── YtDlpUi.Core/       Queue, yt-dlp invocation, profiles, config, installers
-├── YtDlpUi.UI/         Avalonia desktop UI
-├── YtDlpUi.Core.Tests/
-└── YtDlpUi.UI.Tests/
+├── src/
+│   ├── YtDlpUi.Core/       Queue, yt-dlp invocation, profiles, config, installers
+│   └── YtDlpUi.UI/         Avalonia desktop UI
+└── tests/
+    ├── YtDlpUi.Core.Tests/
+    └── YtDlpUi.UI.Tests/
 ```
 
 ## Documentation
