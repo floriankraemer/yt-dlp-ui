@@ -20,6 +20,9 @@ public sealed partial class SearchWindow : Window
     private async void Search_Click(object? sender, RoutedEventArgs e) =>
         await _viewModel.SearchAsync();
 
+    private async void LoadMore_Click(object? sender, RoutedEventArgs e) =>
+        await _viewModel.LoadMoreAsync();
+
     private async void SearchQuery_KeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)

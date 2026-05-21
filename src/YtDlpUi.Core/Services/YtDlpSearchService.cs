@@ -5,7 +5,7 @@ namespace YtDlpUi.Core.Services;
 
 public sealed class YtDlpSearchService : IYtDlpSearchService
 {
-    public const int MaxResults = 20;
+    public const int PageSize = 20;
 
     private readonly IYtDlpProcessRunner _processRunner;
     private readonly IAppConfigStore _appConfigStore;
@@ -27,16 +27,26 @@ public sealed class YtDlpSearchService : IYtDlpSearchService
         _parser = parser ?? new YtDlpSearchResultParser();
     }
 
-    public async Task<SearchResultPage> SearchAsync(string query, CancellationToken cancellationToken = default)
+    public Task<SearchResultPage> SearchAsync(string query, CancellationToken cancellationToken = default) =>
+        SearchAsync(query, skip: 0, cancellationToken);
+
+    public async Task<SearchResultPage> SearchAsync(
+        string query,
+        int skip,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(query))
             throw new InvalidOperationException("Enter a search query.");
+
+        if (skip < 0)
+            throw new ArgumentOutOfRangeException(nameof(skip));
 
         var config = await _appConfigStore.LoadAsync(cancellationToken);
         var ytDlpPath = _binaryLocator.ResolveYtDlpPath(config)
             ?? throw new InvalidOperationException("yt-dlp was not found. Install it or set its path in Settings.");
 
-        var args = BuildSearchArguments(config, _jsRuntimeLocator, query.Trim());
+        var trimmedQuery = query.Trim();
+        var args = BuildSearchArguments(config, _jsRuntimeLocator, trimmedQuery, skip);
         var invocation = new YtDlpInvocation
         {
             ExecutablePath = ytDlpPath,
@@ -60,22 +70,30 @@ public sealed class YtDlpSearchService : IYtDlpSearchService
         var results = _parser.Parse(output);
         return new SearchResultPage
         {
-            Query = query.Trim(),
+            Query = trimmedQuery,
             Results = results,
+            Skip = skip,
+            HasMoreResults = results.Count >= PageSize,
         };
     }
 
     public static IReadOnlyList<string> BuildSearchArguments(
         Models.AppConfiguration config,
         JsRuntimeLocator jsRuntimeLocator,
-        string query)
+        string query,
+        int skip = 0)
     {
+        var end = skip + PageSize;
         var args = new List<string>
         {
             "--flat-playlist",
             "--dump-single-json",
             "--skip-download",
             "--ignore-config",
+            "--playlist-start",
+            (skip + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            "--playlist-end",
+            end.ToString(System.Globalization.CultureInfo.InvariantCulture),
         };
 
         var jsRuntimes = JsRuntimeArgumentBuilder.Build(config, jsRuntimeLocator);
@@ -85,7 +103,7 @@ public sealed class YtDlpSearchService : IYtDlpSearchService
             args.Add(jsRuntimes);
         }
 
-        args.Add($"ytsearch{MaxResults}:{query}");
+        args.Add($"ytsearch{end}:{query}");
         return args;
     }
 }

@@ -16,6 +16,13 @@
       <TextBlock Text="{Binding ErrorMessage}"
                  Foreground="{DynamicResource SystemControlErrorTextForegroundBrush}" />
       <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+        <Button Content="Load more"
+                Click="LoadMore_Click"
+                IsEnabled="{Binding CanLoadMore}"
+                IsVisible="{Binding HasResults}" />
+        <ProgressBar Width="100"
+                     IsIndeterminate="True"
+                     IsVisible="{Binding IsLoadingMore}" />
         <Button Content="Close" Click="Close_Click" />
       </StackPanel>
     </StackPanel>

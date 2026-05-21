@@ -65,17 +65,62 @@ public sealed class YtDlpSearchServiceTests : IDisposable
     }
 
     [Fact]
-    public void BuildSearchArguments_IncludesYtsearchPrefix()
+    public void BuildSearchArguments_FirstPage_UsesPlaylistRange()
     {
         var args = YtDlpSearchService.BuildSearchArguments(
             new AppConfiguration(),
             new JsRuntimeLocator(),
             "hello world");
 
-        Assert.Contains("--flat-playlist", args);
-        Assert.Contains("--dump-single-json", args);
-        Assert.Contains("--skip-download", args);
-        Assert.Equal($"ytsearch{YtDlpSearchService.MaxResults}:hello world", args[^1]);
+        Assert.Contains("--playlist-start", args);
+        Assert.Contains("1", args);
+        Assert.Contains("--playlist-end", args);
+        Assert.Contains("20", args);
+        Assert.Equal($"ytsearch{YtDlpSearchService.PageSize}:hello world", args[^1]);
+    }
+
+    [Fact]
+    public void BuildSearchArguments_SecondPage_OffsetsPlaylistRange()
+    {
+        var args = YtDlpSearchService.BuildSearchArguments(
+            new AppConfiguration(),
+            new JsRuntimeLocator(),
+            "hello world",
+            skip: 20);
+
+        Assert.Contains("--playlist-start", args);
+        Assert.Contains("21", args);
+        Assert.Contains("--playlist-end", args);
+        Assert.Contains("40", args);
+        Assert.Equal("ytsearch40:hello world", args[^1]);
+    }
+
+    [Fact]
+    public async Task SearchAsync_FullPage_SetsHasMoreResults()
+    {
+        var entryLines = Enumerable.Range(1, 20)
+            .Select(i => $$"""{ "id": "vid{{i}}", "title": "Video {{i}}" }""");
+        var json = $$"""
+            { "entries": [ {{string.Join(", ", entryLines)}} ] }
+            """;
+
+        var profiles = new ProfileStore(_root);
+        var appConfig = new AppConfigStore(_root, profiles);
+        await appConfig.EnsureBootstrapAsync();
+        var config = await appConfig.LoadAsync();
+        config.YtDlpPath = Path.Combine(_root, "bin", "yt-dlp", "yt-dlp");
+        await appConfig.SaveAsync(config);
+
+        var service = new YtDlpSearchService(
+            new SearchRunner(json),
+            appConfig,
+            new BinaryLocator(_root),
+            new JsRuntimeLocator());
+
+        var page = await service.SearchAsync("query");
+
+        Assert.Equal(20, page.Results.Count);
+        Assert.True(page.HasMoreResults);
     }
 
     public void Dispose()
