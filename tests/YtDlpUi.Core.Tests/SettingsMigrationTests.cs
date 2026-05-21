@@ -15,6 +15,15 @@ public sealed class SettingsMigrationTests
     }
 
     [Fact]
+    public void MigrateAppConfig_FromV2_SetsThemePreferenceSystem()
+    {
+        var config = new AppConfiguration { SchemaVersion = 2 };
+        var migrated = SettingsMigration.MigrateAppConfig(config);
+        Assert.Equal(SchemaVersions.AppConfig, migrated.SchemaVersion);
+        Assert.Equal(ThemePreference.System, migrated.ThemePreference);
+    }
+
+    [Fact]
     public void MigrateProfile_UpgradesSchemaVersion()
     {
         var profile = new DownloadProfile { Id = "p", Name = "P", SchemaVersion = 0 };

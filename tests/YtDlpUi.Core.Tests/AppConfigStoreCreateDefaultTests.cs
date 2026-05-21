@@ -1,9 +1,17 @@
+using YtDlpUi.Core.Models;
 using YtDlpUi.Core.Services;
 
 namespace YtDlpUi.Core.Tests;
 
 public sealed class AppConfigStoreCreateDefaultTests
 {
+    [Fact]
+    public void NewAppConfiguration_DefaultsThemePreferenceToSystem()
+    {
+        var config = new AppConfiguration();
+        Assert.Equal(ThemePreference.System, config.ThemePreference);
+    }
+
     [Fact]
     public void CreateDefault_UsesProfileStore()
     {

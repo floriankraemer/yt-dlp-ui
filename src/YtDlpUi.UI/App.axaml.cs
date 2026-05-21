@@ -23,5 +23,19 @@ public sealed partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+        _ = ApplyThemeFromConfigAsync();
+    }
+
+    private static async Task ApplyThemeFromConfigAsync()
+    {
+        try
+        {
+            var config = await Services.AppConfigStore.LoadAsync().ConfigureAwait(false);
+            ThemeService.Apply(config.ThemePreference);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.TraceError($"Failed to apply theme preference: {ex}");
+        }
     }
 }

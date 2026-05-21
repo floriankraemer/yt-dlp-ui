@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using YtDlpUi.Core.Abstractions;
 using YtDlpUi.Core.Constants;
 using YtDlpUi.Core.Models;
@@ -7,7 +8,11 @@ namespace YtDlpUi.Core.Services;
 
 public sealed class AppConfigStore : IAppConfigStore
 {
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() },
+    };
 
     private readonly string _configFilePath;
     private readonly IProfileStore _profileStore;

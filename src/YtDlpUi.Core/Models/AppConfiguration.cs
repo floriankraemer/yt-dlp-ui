@@ -14,4 +14,5 @@ public sealed class AppConfiguration
     public string YtDlpReleaseTag { get; set; } = Constants.BinaryReleaseManifest.YtDlpReleaseTag;
     public string FfmpegBuildId { get; set; } = Constants.BinaryReleaseManifest.FfmpegBuildId;
     public Dictionary<string, double> QueueColumnWidths { get; set; } = new(StringComparer.Ordinal);
+    public ThemePreference ThemePreference { get; set; } = ThemePreference.System;
 }

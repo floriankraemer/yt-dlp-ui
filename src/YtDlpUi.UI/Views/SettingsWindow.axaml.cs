@@ -42,6 +42,7 @@ public sealed partial class SettingsWindow : Window
 
     private void InitializeSections()
     {
+        RegisterSection("Appearance", AppearancePanel);
         RegisterSection("Binaries", BinariesPanel);
         RegisterSection("Queue", QueuePanel);
         RegisterSection("Profiles", ProfilesPanel);

@@ -2,8 +2,12 @@
 
 Configuration is stored under `~/.yt-dlp-ui/`:
 
-- `app.json` — yt-dlp/ffmpeg paths, max concurrent downloads, active profile
+- `app.json` — yt-dlp/ffmpeg paths, max concurrent downloads, theme, active profile
 - `profiles/*.json` — named download profiles with common yt-dlp options
+
+## Appearance
+
+Open **Settings → Appearance** to choose **System**, **Light**, or **Dark**. **System** (default) follows your operating system theme on Windows, Linux, and macOS. **Light** and **Dark** override the OS setting. The choice is stored in `app.json` as `ThemePreference`.
 
 ## Binaries
 

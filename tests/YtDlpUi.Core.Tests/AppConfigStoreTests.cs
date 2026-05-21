@@ -96,6 +96,17 @@ public sealed class AppConfigStoreTests : IDisposable
         Assert.Equal(420, loaded.QueueColumnWidths["url"]);
     }
 
+    [Fact]
+    public async Task SaveAsync_PersistsThemePreference()
+    {
+        var config = await _store.LoadAsync();
+        config.ThemePreference = ThemePreference.Dark;
+        await _store.SaveAsync(config);
+
+        var loaded = await _store.LoadAsync();
+        Assert.Equal(ThemePreference.Dark, loaded.ThemePreference);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))

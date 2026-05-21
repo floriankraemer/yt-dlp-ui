@@ -3,6 +3,7 @@ using YtDlpUi.Core.Abstractions;
 using YtDlpUi.Core.Constants;
 using YtDlpUi.Core.Models;
 using YtDlpUi.Core.Services;
+using YtDlpUi.UI.Services;
 
 namespace YtDlpUi.UI.ViewModels;
 
@@ -38,6 +39,8 @@ public sealed class SettingsViewModel : ViewModelBase
     public ObservableCollection<DownloadProfile> Profiles { get; }
     public ObservableCollection<OptionSectionViewModel> OptionSections { get; }
     public IReadOnlyList<JsRuntimeEngineDefinition> JsRuntimeEngineOptions => JsRuntimeEngines.All;
+    public IReadOnlyList<ThemePreference> ThemePreferenceOptions { get; } =
+        [ThemePreference.System, ThemePreference.Light, ThemePreference.Dark];
     public IReadOnlyList<string> Sections => _catalog.GetSections();
 
     public AppConfiguration Config
@@ -81,6 +84,20 @@ public sealed class SettingsViewModel : ViewModelBase
     {
         get => _newProfileName;
         set => SetProperty(ref _newProfileName, value);
+    }
+
+    public ThemePreference ThemePreference
+    {
+        get => Config.ThemePreference;
+        set
+        {
+            if (Config.ThemePreference == value)
+                return;
+
+            Config.ThemePreference = value;
+            OnPropertyChanged();
+            ThemeService.Apply(value);
+        }
     }
 
     public int MaxConcurrentDownloads
@@ -200,6 +217,7 @@ public sealed class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(ResolvedFfmpegPath));
         OnPropertyChanged(nameof(ResolvedJsRuntimePath));
         OnPropertyChanged(nameof(JsRuntimesArgumentPreview));
+        OnPropertyChanged(nameof(ThemePreference));
     }
 
     public async Task<bool> SaveAsync()
@@ -225,6 +243,7 @@ public sealed class SettingsViewModel : ViewModelBase
 
         ValidationError = null;
         await _coordinator.SaveAsync(Config, Profile);
+        ThemeService.Apply(Config.ThemePreference);
         return true;
     }
 

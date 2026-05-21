@@ -30,6 +30,22 @@
       </Border>
 
       <Panel x:Name="SectionPanelsHost" Grid.Column="1" Margin="12,0,0,0">
+        <ScrollViewer x:Name="AppearancePanel" IsVisible="False">
+          <StackPanel Spacing="16" Margin="8">
+            <StackPanel Spacing="4">
+              <TextBlock Text="Appearance" FontWeight="SemiBold" FontSize="16" />
+              <TextBlock Text="Choose light, dark, or follow your operating system theme."
+                         TextWrapping="Wrap"
+                         Opacity="0.8" />
+            </StackPanel>
+            <StackPanel Spacing="8">
+              <TextBlock Text="Theme" FontWeight="SemiBold" />
+              <ComboBox ItemsSource="{Binding ThemePreferenceOptions}"
+                        SelectedItem="{Binding ThemePreference}" />
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+
         <ScrollViewer x:Name="BinariesPanel" IsVisible="False">
           <StackPanel Spacing="16" Margin="8">
             <StackPanel Spacing="4">

@@ -10,6 +10,9 @@ public static class SettingsMigration
         if (config.SchemaVersion >= SchemaVersions.AppConfig)
             return config;
 
+        if (config.SchemaVersion < 3)
+            config.ThemePreference = ThemePreference.System;
+
         config.SchemaVersion = SchemaVersions.AppConfig;
         return config;
     }
