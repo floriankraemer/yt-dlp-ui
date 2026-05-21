@@ -250,6 +250,12 @@ public sealed partial class MainWindow : Window
     private async void InstallFfmpeg_Click(object? sender, RoutedEventArgs e) =>
         await ViewModel.InstallFfmpegAsync();
 
+    private async void Search_Click(object? sender, RoutedEventArgs e)
+    {
+        var window = new SearchWindow();
+        await window.ShowDialog(this);
+    }
+
     private async void Settings_Click(object? sender, RoutedEventArgs e)
     {
         var window = new SettingsWindow();

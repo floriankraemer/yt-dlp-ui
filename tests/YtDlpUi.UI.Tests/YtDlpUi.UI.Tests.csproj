@@ -9,6 +9,8 @@
     <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.DownloadJobViewModel</Include>
     <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.OptionItemViewModel</Include>
     <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.OptionSectionViewModel</Include>
+    <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.SearchResultViewModel</Include>
+    <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.SearchViewModel</Include>
     <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.ViewModelBase</Include>
     <ExcludeByFile>**/Views/**</ExcludeByFile>
     <ExcludeByFile>**/Program.cs</ExcludeByFile>

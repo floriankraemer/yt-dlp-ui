@@ -29,6 +29,13 @@ public sealed class AppServices
         DownloadHelper = new BinaryDownloadHelper();
         ProcessRunner = new YtDlpProcessRunner();
         DownloadFolderService = new DownloadFolderService();
+        SearchResultParser = new YtDlpSearchResultParser();
+        SearchService = new YtDlpSearchService(
+            ProcessRunner,
+            AppConfigStore,
+            BinaryLocator,
+            JsRuntimeLocator,
+            SearchResultParser);
         Queue = new DownloadQueueService(
             ProcessRunner,
             CommandBuilder,
@@ -41,6 +48,14 @@ public sealed class AppServices
             MetadataParser,
             DownloadFolderService,
             JsRuntimeLocator);
+        EnqueueCoordinator = new DownloadEnqueueCoordinator(
+            Queue,
+            AppConfigStore,
+            ProfileStore,
+            UrlNormalizer,
+            BinaryLocator,
+            DownloadFolderService);
+        ThumbnailLoader = new ThumbnailLoader();
         YtDlpInstaller = new YtDlpBinaryInstaller(ReleaseSource, BinaryLocator, DownloadHelper);
         FfmpegInstaller = new FfmpegBinaryInstaller(ReleaseSource, BinaryLocator, DownloadHelper);
     }
@@ -57,12 +72,16 @@ public sealed class AppServices
     public YtDlpProgressParser ProgressParser { get; }
     public YtDlpOutputPathParser OutputPathParser { get; }
     public YtDlpMetadataParser MetadataParser { get; }
+    public YtDlpSearchResultParser SearchResultParser { get; }
+    public IYtDlpSearchService SearchService { get; }
     public AppSettingsValidator Validator { get; }
     public IBinaryReleaseSource ReleaseSource { get; }
     public BinaryDownloadHelper DownloadHelper { get; }
     public IYtDlpProcessRunner ProcessRunner { get; }
     public DownloadFolderService DownloadFolderService { get; }
     public IDownloadQueueService Queue { get; }
+    public DownloadEnqueueCoordinator EnqueueCoordinator { get; }
+    public IThumbnailLoader ThumbnailLoader { get; }
     public IBinaryInstaller YtDlpInstaller { get; }
     public IBinaryInstaller FfmpegInstaller { get; }
 
@@ -70,11 +89,19 @@ public sealed class AppServices
         Queue,
         AppConfigStore,
         ProfileStore,
+        EnqueueCoordinator,
         DownloadFolderService,
         UrlNormalizer,
         YtDlpInstaller,
         FfmpegInstaller,
         BinaryLocator);
+
+    public SearchViewModel CreateSearchViewModel() => new(
+        SearchService,
+        AppConfigStore,
+        ProfileStore,
+        EnqueueCoordinator,
+        ThumbnailLoader);
 
     public SettingsCoordinator CreateSettingsCoordinator() => new(
         AppConfigStore,
