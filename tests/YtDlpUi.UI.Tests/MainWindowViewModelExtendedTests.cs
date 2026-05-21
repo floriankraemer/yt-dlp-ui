@@ -32,6 +32,7 @@ public sealed class MainWindowViewModelExtendedTests
             queue,
             appConfig,
             Substitute.For<IProfileStore>(),
+            ViewModelTestHelpers.CreateEnqueueCoordinator(queue, appConfig),
             new DownloadFolderService(),
             new YouTubeUrlNormalizer(),
             installer,

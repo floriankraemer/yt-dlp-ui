@@ -11,6 +11,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly IDownloadQueueService _queue;
     private readonly IAppConfigStore _appConfigStore;
     private readonly IProfileStore _profileStore;
+    private readonly DownloadEnqueueCoordinator _enqueueCoordinator;
     private readonly YouTubeUrlNormalizer _urlNormalizer;
     private readonly IBinaryInstaller _ytDlpInstaller;
     private readonly IBinaryInstaller _ffmpegInstaller;
@@ -30,6 +31,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         IDownloadQueueService queue,
         IAppConfigStore appConfigStore,
         IProfileStore profileStore,
+        DownloadEnqueueCoordinator enqueueCoordinator,
         DownloadFolderService downloadFolderService,
         YouTubeUrlNormalizer urlNormalizer,
         IBinaryInstaller ytDlpInstaller,
@@ -39,6 +41,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         _queue = queue;
         _appConfigStore = appConfigStore;
         _profileStore = profileStore;
+        _enqueueCoordinator = enqueueCoordinator;
         _downloadFolderService = downloadFolderService;
         _urlNormalizer = urlNormalizer;
         _ytDlpInstaller = ytDlpInstaller;
@@ -182,60 +185,21 @@ public sealed class MainWindowViewModel : ViewModelBase
     public async Task AddUrlAsync()
     {
         ErrorMessage = null;
-        var normalized = _urlNormalizer.Normalize(UrlInput);
-        if (!normalized.IsSuccess || string.IsNullOrWhiteSpace(normalized.NormalizedUrl))
+        var config = await _appConfigStore.LoadAsync();
+        var profileId = SelectedProfile?.Id ?? config.ActiveProfileId;
+        var result = await _enqueueCoordinator.TryEnqueueAsync(UrlInput, profileId ?? string.Empty);
+
+        if (!result.IsSuccess)
         {
-            ErrorMessage = normalized.Error ?? "Invalid URL.";
+            ErrorMessage = result.Error;
             return;
         }
 
-        try
-        {
-            var config = await _appConfigStore.LoadAsync();
-            if (_binaryLocator.ResolveYtDlpPath(config) is null)
-            {
-                ErrorMessage = "yt-dlp was not found. Use Install yt-dlp or set its path in Settings.";
-                return;
-            }
-
-            var profileId = SelectedProfile?.Id ?? config.ActiveProfileId;
-            if (string.IsNullOrWhiteSpace(profileId))
-            {
-                ErrorMessage = "No download profile selected. Create one in Settings → Profiles.";
-                return;
-            }
-
-            var profile = await _profileStore.GetAsync(profileId);
-            if (profile is null)
-            {
-                ErrorMessage = $"Profile '{profileId}' was not found. Open Settings and save a profile.";
-                return;
-            }
-
-            if (!_downloadFolderService.IsConfigured(config))
-            {
-                ErrorMessage = "Download folder is not set. Open Settings → Queue or restart the app to choose a folder.";
-                return;
-            }
-
-            if (ProfileFfmpegRequirement.RequiresFfmpeg(profile)
-                && _binaryLocator.ResolveFfmpegPath(config) is null)
-            {
-                ErrorMessage = ProfileFfmpegRequirement.FfmpegRequiredMessage;
-                return;
-            }
-
-            await _queue.EnqueueAsync(normalized.NormalizedUrl, profileId);
-            UrlInput = string.Empty;
-            SyncJobs();
-            StatusMessage = Jobs.Count == 1
-                ? "1 download in queue."
-                : $"{Jobs.Count} downloads in queue.";
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
-        }
+        UrlInput = string.Empty;
+        SyncJobs();
+        StatusMessage = Jobs.Count == 1
+            ? "1 download in queue."
+            : $"{Jobs.Count} downloads in queue.";
     }
 
     public void NormalizeUrlInput()
