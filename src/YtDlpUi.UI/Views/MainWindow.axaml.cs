@@ -19,6 +19,7 @@ public sealed partial class MainWindow : Window
 
     private CancellationTokenSource? _columnSaveDebounce;
     private DownloadJobViewModel? _contextMenuJob;
+    private SearchWindow? _searchWindow;
 
     public MainWindow()
     {
@@ -229,10 +230,25 @@ public sealed partial class MainWindow : Window
         return dataGrid.SelectedItem as DownloadJobViewModel;
     }
 
-    private async void Search_Click(object? sender, RoutedEventArgs e)
+    private void Search_Click(object? sender, RoutedEventArgs e)
     {
-        var window = new SearchWindow();
-        await window.ShowDialog(this);
+        if (_searchWindow is { } existing)
+        {
+            existing.Activate();
+            return;
+        }
+
+        _searchWindow = new SearchWindow();
+        _searchWindow.Closed += OnSearchWindowClosed;
+        _searchWindow.Show(this);
+    }
+
+    private void OnSearchWindowClosed(object? sender, EventArgs e)
+    {
+        if (sender is Window window)
+            window.Closed -= OnSearchWindowClosed;
+
+        _searchWindow = null;
     }
 
     private async void Settings_Click(object? sender, RoutedEventArgs e)
