@@ -5,7 +5,7 @@ namespace YtDlpUi.Core.Tests;
 public sealed class GitHubBinaryReleaseSourceTests
 {
     [Theory]
-    [InlineData("linux-x64", "yt-dlp")]
+    [InlineData("linux-x64", "yt-dlp_linux")]
     [InlineData("win-x64", "yt-dlp.exe")]
     public void GetYtDlpAsset_UsesExpectedFileName(string rid, string fileName)
     {

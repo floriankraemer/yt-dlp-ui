@@ -1,6 +1,5 @@
 using System.IO.Compression;
 using System.Net;
-using System.Text;
 using YtDlpUi.Core.Services;
 
 namespace YtDlpUi.Core.Tests;
@@ -35,15 +34,26 @@ public sealed class DenoBinaryInstallerTests : IDisposable
 
     private sealed class FakeZipHttpMessageHandler : HttpMessageHandler
     {
+        private const int MinimumArchiveSizeBytes = 1_000_100;
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             using var memory = new MemoryStream();
             using (var archive = new ZipArchive(memory, ZipArchiveMode.Create, leaveOpen: true))
             {
-                var entry = archive.CreateEntry("deno");
-                using var stream = entry.Open();
-                var payload = Encoding.UTF8.GetBytes(new string('x', 1_000_100));
-                stream.Write(payload, 0, payload.Length);
+                var denoEntry = archive.CreateEntry("deno", CompressionLevel.NoCompression);
+                using (var stream = denoEntry.Open())
+                {
+                    var payload = new byte[100_000];
+                    stream.Write(payload, 0, payload.Length);
+                }
+
+                var paddingEntry = archive.CreateEntry("padding.bin", CompressionLevel.NoCompression);
+                using (var stream = paddingEntry.Open())
+                {
+                    var padding = new byte[MinimumArchiveSizeBytes];
+                    stream.Write(padding, 0, padding.Length);
+                }
             }
 
             memory.Position = 0;
