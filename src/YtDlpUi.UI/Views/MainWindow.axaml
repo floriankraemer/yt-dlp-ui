@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:YtDlpUi.UI.ViewModels"
+        xmlns:svc="clr-namespace:YtDlpUi.UI.Services"
         xmlns:models="clr-namespace:YtDlpUi.Core.Models;assembly=YtDlpUi.Core"
         x:Class="YtDlpUi.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -69,10 +70,14 @@
         </ContextMenu>
       </DataGrid.ContextMenu>
       <DataGrid.Columns>
-        <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" Width="90" />
-        <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="*" />
-        <DataGridTextColumn Header="URL" Binding="{Binding Url}" Width="2*" />
-        <DataGridTemplateColumn Header="Progress" Width="140">
+        <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" Width="90"
+                            svc:QueueColumnLayout.LayoutKey="status" />
+        <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="*"
+                            svc:QueueColumnLayout.LayoutKey="title" />
+        <DataGridTextColumn Header="URL" Binding="{Binding Url}" Width="2*"
+                            svc:QueueColumnLayout.LayoutKey="url" />
+        <DataGridTemplateColumn Header="Progress" Width="140"
+                                svc:QueueColumnLayout.LayoutKey="progress">
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate x:DataType="vm:DownloadJobViewModel">
               <Grid Height="18" VerticalAlignment="Center">
@@ -90,10 +95,14 @@
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTextColumn Header="Speed" Binding="{Binding Speed}" Width="80" />
-        <DataGridTextColumn Header="ETA" Binding="{Binding Eta}" Width="80" />
-        <DataGridTextColumn Header="Error" Binding="{Binding Error}" Width="2*" />
-        <DataGridTemplateColumn Header="Actions" Width="260">
+        <DataGridTextColumn Header="Speed" Binding="{Binding Speed}" Width="80"
+                            svc:QueueColumnLayout.LayoutKey="speed" />
+        <DataGridTextColumn Header="ETA" Binding="{Binding Eta}" Width="80"
+                            svc:QueueColumnLayout.LayoutKey="eta" />
+        <DataGridTextColumn Header="Error" Binding="{Binding Error}" Width="2*"
+                            svc:QueueColumnLayout.LayoutKey="error" />
+        <DataGridTemplateColumn Header="Actions" Width="260"
+                                svc:QueueColumnLayout.LayoutKey="actions">
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate x:DataType="vm:DownloadJobViewModel">
               <StackPanel Orientation="Horizontal" Spacing="4">

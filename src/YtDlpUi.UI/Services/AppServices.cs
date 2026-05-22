@@ -24,11 +24,11 @@ public sealed class AppServices
         ProgressParser = new YtDlpProgressParser();
         OutputPathParser = new YtDlpOutputPathParser();
         MetadataParser = new YtDlpMetadataParser();
-        Validator = new AppSettingsValidator(ExtraArgsTokenizer);
+        DownloadFolderService = new DownloadFolderService();
+        Validator = new AppSettingsValidator(ExtraArgsTokenizer, DownloadFolderService);
         ReleaseSource = new GitHubBinaryReleaseSource();
         DownloadHelper = new BinaryDownloadHelper();
         ProcessRunner = new YtDlpProcessRunner();
-        DownloadFolderService = new DownloadFolderService();
         SearchResultParser = new YtDlpSearchResultParser();
         SearchService = new YtDlpSearchService(
             ProcessRunner,
@@ -55,9 +55,13 @@ public sealed class AppServices
             UrlNormalizer,
             BinaryLocator,
             DownloadFolderService);
-        ThumbnailLoader = new ThumbnailLoader();
+        HttpClient = new HttpClient();
+        ThumbnailLoader = new ThumbnailLoader(HttpClient);
+        BinaryInstallService = new BinaryInstallService(AppConfigStore, BinaryLocator);
         YtDlpInstaller = new YtDlpBinaryInstaller(ReleaseSource, BinaryLocator, DownloadHelper);
         FfmpegInstaller = new FfmpegBinaryInstaller(ReleaseSource, BinaryLocator, DownloadHelper);
+        FileSystemLauncher = new FileSystemLauncherService();
+        StoragePicker = new StoragePickerService();
     }
 
     public string ConfigRoot { get; }
@@ -66,8 +70,8 @@ public sealed class AppServices
     public YtDlpOptionCatalog Catalog { get; }
     public ExtraArgsTokenizer ExtraArgsTokenizer { get; }
     public YtDlpCommandBuilder CommandBuilder { get; }
-    public BinaryLocator BinaryLocator { get; }
-    public JsRuntimeLocator JsRuntimeLocator { get; }
+    public IBinaryLocator BinaryLocator { get; }
+    public IJsRuntimeLocator JsRuntimeLocator { get; }
     public YouTubeUrlNormalizer UrlNormalizer { get; }
     public YtDlpProgressParser ProgressParser { get; }
     public YtDlpOutputPathParser OutputPathParser { get; }
@@ -81,9 +85,13 @@ public sealed class AppServices
     public DownloadFolderService DownloadFolderService { get; }
     public IDownloadQueueService Queue { get; }
     public DownloadEnqueueCoordinator EnqueueCoordinator { get; }
+    public HttpClient HttpClient { get; }
     public IThumbnailLoader ThumbnailLoader { get; }
+    public BinaryInstallService BinaryInstallService { get; }
     public IBinaryInstaller YtDlpInstaller { get; }
     public IBinaryInstaller FfmpegInstaller { get; }
+    public IFileSystemLauncher FileSystemLauncher { get; }
+    public StoragePickerService StoragePicker { get; }
 
     public MainWindowViewModel CreateMainViewModel() => new(
         Queue,
@@ -94,7 +102,8 @@ public sealed class AppServices
         UrlNormalizer,
         YtDlpInstaller,
         FfmpegInstaller,
-        BinaryLocator);
+        BinaryInstallService,
+        FileSystemLauncher);
 
     public SearchViewModel CreateSearchViewModel() => new(
         SearchService,

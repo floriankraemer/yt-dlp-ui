@@ -1,8 +1,6 @@
 using NSubstitute;
 using YtDlpUi.Core.Abstractions;
 using YtDlpUi.Core.Models;
-using YtDlpUi.Core.Services;
-using YtDlpUi.UI.ViewModels;
 
 namespace YtDlpUi.UI.Tests;
 
@@ -28,16 +26,11 @@ public sealed class MainWindowViewModelExtendedTests
         installer.InstallAsync(Arg.Any<CancellationToken>())
             .Returns(BinaryInstallResult.Success("/tmp/yt-dlp"));
 
-        var vm = new MainWindowViewModel(
+        var vm = ViewModelTestHelpers.CreateMainViewModel(
             queue,
             appConfig,
-            Substitute.For<IProfileStore>(),
-            ViewModelTestHelpers.CreateEnqueueCoordinator(queue, appConfig),
-            new DownloadFolderService(),
-            new YouTubeUrlNormalizer(),
-            installer,
-            Substitute.For<IBinaryInstaller>(),
-            new BinaryLocator(Path.GetTempPath()));
+            ytDlpInstaller: installer,
+            binaryInstallService: ViewModelTestHelpers.CreateBinaryInstallService(appConfig));
 
         await vm.InstallYtDlpAsync();
         await appConfig.Received().SaveAsync(Arg.Is<AppConfiguration>(c => c.YtDlpPath == "/tmp/yt-dlp"), Arg.Any<CancellationToken>());

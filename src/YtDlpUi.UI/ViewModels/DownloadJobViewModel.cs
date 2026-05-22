@@ -37,23 +37,5 @@ public sealed class DownloadJobViewModel : ViewModelBase
     public bool CanOpenOutput => DownloadOutputResolver.CanOpen(_job);
     public string OpenOutputMenuLabel => DownloadOutputResolver.IsSingleFile(_job) ? "Open file" : "Open Location";
 
-    public void Refresh()
-    {
-        OnPropertyChanged(nameof(Title));
-        OnPropertyChanged(nameof(Status));
-        OnPropertyChanged(nameof(StatusText));
-        OnPropertyChanged(nameof(Progress));
-        OnPropertyChanged(nameof(IsProgressIndeterminate));
-        OnPropertyChanged(nameof(ProgressDisplayText));
-        OnPropertyChanged(nameof(Speed));
-        OnPropertyChanged(nameof(Eta));
-        OnPropertyChanged(nameof(Error));
-        OnPropertyChanged(nameof(LogOutput));
-        OnPropertyChanged(nameof(CanViewLog));
-        OnPropertyChanged(nameof(CanStart));
-        OnPropertyChanged(nameof(CanCancel));
-        OnPropertyChanged(nameof(CanRemove));
-        OnPropertyChanged(nameof(CanOpenOutput));
-        OnPropertyChanged(nameof(OpenOutputMenuLabel));
-    }
+    public void Refresh() => OnPropertyChanged(string.Empty);
 }

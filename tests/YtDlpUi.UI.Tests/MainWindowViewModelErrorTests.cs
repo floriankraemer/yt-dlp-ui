@@ -1,7 +1,6 @@
 using NSubstitute;
 using YtDlpUi.Core.Abstractions;
 using YtDlpUi.Core.Models;
-using YtDlpUi.Core.Services;
 using YtDlpUi.UI.ViewModels;
 
 namespace YtDlpUi.UI.Tests;
@@ -18,16 +17,7 @@ public sealed class MainWindowViewModelErrorTests
         appConfig.LoadAsync(Arg.Any<CancellationToken>())
             .Returns(new AppConfiguration { ActiveProfileId = "default" });
 
-        var vm = new MainWindowViewModel(
-            queue,
-            appConfig,
-            Substitute.For<IProfileStore>(),
-            ViewModelTestHelpers.CreateEnqueueCoordinator(queue, appConfig),
-            new DownloadFolderService(),
-            new YouTubeUrlNormalizer(),
-            Substitute.For<IBinaryInstaller>(),
-            Substitute.For<IBinaryInstaller>(),
-            new BinaryLocator(Path.GetTempPath()));
+        var vm = ViewModelTestHelpers.CreateMainViewModel(queue, appConfig);
 
         vm.UrlInput = "https://www.youtube.com/watch?v=abc";
         await vm.AddUrlAsync();
@@ -55,16 +45,7 @@ public sealed class MainWindowViewModelErrorTests
         profileStore.GetAsync("default", Arg.Any<CancellationToken>())
             .Returns(new DownloadProfile { Id = "default", Name = "Default" });
 
-        var vm = new MainWindowViewModel(
-            queue,
-            appConfig,
-            profileStore,
-            ViewModelTestHelpers.CreateEnqueueCoordinator(queue, appConfig, profileStore),
-            new DownloadFolderService(),
-            new YouTubeUrlNormalizer(),
-            Substitute.For<IBinaryInstaller>(),
-            Substitute.For<IBinaryInstaller>(),
-            new BinaryLocator(Path.GetTempPath()));
+        var vm = ViewModelTestHelpers.CreateMainViewModel(queue, appConfig, profileStore);
 
         vm.UrlInput = "https://www.youtube.com/watch?v=abc";
         await vm.AddUrlAsync();
@@ -82,16 +63,7 @@ public sealed class MainWindowViewModelErrorTests
         appConfig.LoadAsync(Arg.Any<CancellationToken>())
             .Returns(new AppConfiguration());
 
-        var vm = new MainWindowViewModel(
-            queue,
-            appConfig,
-            Substitute.For<IProfileStore>(),
-            ViewModelTestHelpers.CreateEnqueueCoordinator(queue, appConfig),
-            new DownloadFolderService(),
-            new YouTubeUrlNormalizer(),
-            Substitute.For<IBinaryInstaller>(),
-            Substitute.For<IBinaryInstaller>(),
-            new BinaryLocator(Path.GetTempPath()));
+        var vm = ViewModelTestHelpers.CreateMainViewModel(queue, appConfig);
 
         await vm.InitializeAsync();
         Assert.Contains("yt-dlp", vm.YtDlpStatus ?? string.Empty);

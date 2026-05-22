@@ -14,19 +14,19 @@ public sealed class DownloadQueueService : IDownloadQueueService
     private readonly YtDlpCommandBuilder _commandBuilder;
     private readonly IAppConfigStore _appConfigStore;
     private readonly IProfileStore _profileStore;
-    private readonly BinaryLocator _binaryLocator;
+    private readonly IBinaryLocator _binaryLocator;
     private readonly YouTubeUrlNormalizer _urlNormalizer;
     private readonly YtDlpProgressParser _progressParser;
     private readonly YtDlpOutputPathParser _outputPathParser;
     private readonly YtDlpMetadataParser _metadataParser;
     private readonly DownloadFolderService _downloadFolderService;
-    private readonly JsRuntimeLocator _jsRuntimeLocator;
+    private readonly IJsRuntimeLocator _jsRuntimeLocator;
     private readonly ConcurrentDictionary<Guid, DownloadJob> _jobs = new();
     private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _jobCancellation = new();
     private readonly ConcurrentDictionary<Guid, byte> _activeWorkers = new();
     private readonly Channel<Guid> _pendingJobs = Channel.CreateUnbounded<Guid>();
-    private readonly SemaphoreSlim _concurrencyGate;
     private readonly object _sync = new();
+    private SemaphoreSlim _concurrencyGate;
     private int _maxConcurrent = AppPaths.DefaultMaxConcurrentDownloads;
 
     public DownloadQueueService(
@@ -34,13 +34,13 @@ public sealed class DownloadQueueService : IDownloadQueueService
         YtDlpCommandBuilder commandBuilder,
         IAppConfigStore appConfigStore,
         IProfileStore profileStore,
-        BinaryLocator binaryLocator,
+        IBinaryLocator binaryLocator,
         YouTubeUrlNormalizer urlNormalizer,
         YtDlpProgressParser progressParser,
         YtDlpOutputPathParser outputPathParser,
         YtDlpMetadataParser metadataParser,
         DownloadFolderService downloadFolderService,
-        JsRuntimeLocator jsRuntimeLocator)
+        IJsRuntimeLocator jsRuntimeLocator)
     {
         _processRunner = processRunner;
         _commandBuilder = commandBuilder;
@@ -53,7 +53,7 @@ public sealed class DownloadQueueService : IDownloadQueueService
         _metadataParser = metadataParser;
         _downloadFolderService = downloadFolderService;
         _jsRuntimeLocator = jsRuntimeLocator;
-        _concurrencyGate = new SemaphoreSlim(_maxConcurrent, AppPaths.MaxConcurrentDownloadsCap);
+        _concurrencyGate = CreateConcurrencyGate(_maxConcurrent);
         _ = Task.Run(PumpJobsAsync);
     }
 
@@ -100,7 +100,7 @@ public sealed class DownloadQueueService : IDownloadQueueService
             job.Status = DownloadStatus.Queued;
             job.Error = null;
             job.LogOutput = null;
-                job.Progress = 0;
+            job.Progress = 0;
             job.ProgressPhase = DownloadProgressPhase.Downloading;
             job.ProgressActivity = null;
             job.UseIndeterminateProgress = false;
@@ -171,8 +171,21 @@ public sealed class DownloadQueueService : IDownloadQueueService
     {
         var clamped = Math.Clamp(maxConcurrent, 1, AppPaths.MaxConcurrentDownloadsCap);
         lock (_sync)
+        {
+            if (_maxConcurrent == clamped)
+                return;
+
+            var activeSlots = _maxConcurrent - _concurrencyGate.CurrentCount;
             _maxConcurrent = clamped;
+            var available = Math.Max(0, clamped - activeSlots);
+            var oldGate = _concurrencyGate;
+            _concurrencyGate = new SemaphoreSlim(available, clamped);
+            oldGate.Dispose();
+        }
     }
+
+    private static SemaphoreSlim CreateConcurrencyGate(int maxConcurrent) =>
+        new(maxConcurrent, maxConcurrent);
 
     private async Task ProcessJobAsync(DownloadJob job)
     {
@@ -239,23 +252,17 @@ public sealed class DownloadQueueService : IDownloadQueueService
                 };
                 job.WorkingDirectory = workingDirectory;
 
-                var progress = new SyncLineProgress(HandleOutputLine);
+                var outputHandler = new DownloadJobOutputLineHandler(
+                    job,
+                    _outputPathParser,
+                    _metadataParser,
+                    ApplyProgressUpdate,
+                    NotifyJobsChanged);
 
-                var result = await _processRunner.RunAsync(invocation, progress, jobCts.Token);
+                var result = await _processRunner.RunAsync(invocation, outputHandler, jobCts.Token);
                 ExtractMetadataFromLines(job, result.StandardOutput);
                 ExtractMetadataFromLines(job, result.StandardError);
                 job.LogOutput = YtDlpLogFormatter.Format(invocation, result);
-
-                void HandleOutputLine(string line)
-                {
-                    ApplyProgressUpdate(job, line);
-
-                    if (_outputPathParser.TryAddCandidate(line, job.OutputPaths))
-                        NotifyJobsChanged();
-
-                    if (_metadataParser.TryApplyMetadata(job, line))
-                        NotifyJobsChanged();
-                }
 
                 if (job.Status == DownloadStatus.Cancelled || result.WasCancelled)
                 {
@@ -364,20 +371,48 @@ public sealed class DownloadQueueService : IDownloadQueueService
         return profile;
     }
 
-    private static void ExtractMetadataFromLines(DownloadJob job, string output)
+    private void ExtractMetadataFromLines(DownloadJob job, string output)
     {
         if (string.IsNullOrWhiteSpace(output))
             return;
 
-        var parser = new YtDlpMetadataParser();
         foreach (var line in output.Split('\n'))
-            parser.TryApplyMetadata(job, line);
+            _metadataParser.TryApplyMetadata(job, line);
     }
 
     private void NotifyJobsChanged() => JobsChanged?.Invoke(this, EventArgs.Empty);
 
-    private sealed class SyncLineProgress(Action<string> handler) : IProgress<string>
+    private sealed class DownloadJobOutputLineHandler : IProgress<string>
     {
-        public void Report(string value) => handler(value);
+        private readonly DownloadJob _job;
+        private readonly YtDlpOutputPathParser _outputPathParser;
+        private readonly YtDlpMetadataParser _metadataParser;
+        private readonly Action<DownloadJob, string> _applyProgress;
+        private readonly Action _notifyChanged;
+
+        public DownloadJobOutputLineHandler(
+            DownloadJob job,
+            YtDlpOutputPathParser outputPathParser,
+            YtDlpMetadataParser metadataParser,
+            Action<DownloadJob, string> applyProgress,
+            Action notifyChanged)
+        {
+            _job = job;
+            _outputPathParser = outputPathParser;
+            _metadataParser = metadataParser;
+            _applyProgress = applyProgress;
+            _notifyChanged = notifyChanged;
+        }
+
+        public void Report(string line)
+        {
+            _applyProgress(_job, line);
+
+            if (_outputPathParser.TryAddCandidate(line, _job.OutputPaths))
+                _notifyChanged();
+
+            if (_metadataParser.TryApplyMetadata(_job, line))
+                _notifyChanged();
+        }
     }
 }

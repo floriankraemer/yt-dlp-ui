@@ -9,15 +9,15 @@ public sealed class YtDlpSearchService : IYtDlpSearchService
 
     private readonly IYtDlpProcessRunner _processRunner;
     private readonly IAppConfigStore _appConfigStore;
-    private readonly BinaryLocator _binaryLocator;
-    private readonly JsRuntimeLocator _jsRuntimeLocator;
+    private readonly IBinaryLocator _binaryLocator;
+    private readonly IJsRuntimeLocator _jsRuntimeLocator;
     private readonly YtDlpSearchResultParser _parser;
 
     public YtDlpSearchService(
         IYtDlpProcessRunner processRunner,
         IAppConfigStore appConfigStore,
-        BinaryLocator binaryLocator,
-        JsRuntimeLocator jsRuntimeLocator,
+        IBinaryLocator binaryLocator,
+        IJsRuntimeLocator jsRuntimeLocator,
         YtDlpSearchResultParser? parser = null)
     {
         _processRunner = processRunner;
@@ -79,7 +79,7 @@ public sealed class YtDlpSearchService : IYtDlpSearchService
 
     public static IReadOnlyList<string> BuildSearchArguments(
         Models.AppConfiguration config,
-        JsRuntimeLocator jsRuntimeLocator,
+        IJsRuntimeLocator jsRuntimeLocator,
         string query,
         int skip = 0)
     {

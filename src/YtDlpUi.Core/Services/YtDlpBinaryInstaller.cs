@@ -6,13 +6,13 @@ namespace YtDlpUi.Core.Services;
 public sealed class YtDlpBinaryInstaller : IBinaryInstaller
 {
     private readonly IBinaryReleaseSource _releaseSource;
-    private readonly BinaryLocator _binaryLocator;
+    private readonly IBinaryLocator _binaryLocator;
     private readonly BinaryDownloadHelper _downloadHelper;
     private readonly string _runtimeIdentifier;
 
     public YtDlpBinaryInstaller(
         IBinaryReleaseSource releaseSource,
-        BinaryLocator binaryLocator,
+        IBinaryLocator binaryLocator,
         BinaryDownloadHelper downloadHelper,
         string? runtimeIdentifier = null)
     {

@@ -9,7 +9,7 @@ public sealed class DownloadEnqueueCoordinator
     private readonly IAppConfigStore _appConfigStore;
     private readonly IProfileStore _profileStore;
     private readonly YouTubeUrlNormalizer _urlNormalizer;
-    private readonly BinaryLocator _binaryLocator;
+    private readonly IBinaryLocator _binaryLocator;
     private readonly DownloadFolderService _downloadFolderService;
 
     public DownloadEnqueueCoordinator(
@@ -17,7 +17,7 @@ public sealed class DownloadEnqueueCoordinator
         IAppConfigStore appConfigStore,
         IProfileStore profileStore,
         YouTubeUrlNormalizer urlNormalizer,
-        BinaryLocator binaryLocator,
+        IBinaryLocator binaryLocator,
         DownloadFolderService downloadFolderService)
     {
         _queue = queue;
@@ -61,7 +61,11 @@ public sealed class DownloadEnqueueCoordinator
             var job = await _queue.EnqueueAsync(normalized.NormalizedUrl, profileId, cancellationToken);
             return EnqueueResult.Success(job);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            return EnqueueResult.Failure(ex.Message);
+        }
+        catch (IOException ex)
         {
             return EnqueueResult.Failure(ex.Message);
         }

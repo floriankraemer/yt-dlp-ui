@@ -2,9 +2,9 @@ using System.Diagnostics;
 
 namespace YtDlpUi.UI.Services;
 
-public static class FileSystemLauncher
+public sealed class FileSystemLauncherService : IFileSystemLauncher
 {
-    public static bool TryOpenFile(string path)
+    public bool TryOpenFile(string path)
     {
         if (!File.Exists(path))
             return false;
@@ -22,13 +22,17 @@ public static class FileSystemLauncher
 
             return StartProcess("xdg-open", path);
         }
-        catch
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (InvalidOperationException)
         {
             return false;
         }
     }
 
-    public static bool TryOpenLocation(string path)
+    public bool TryOpenLocation(string path)
     {
         try
         {
@@ -55,7 +59,11 @@ public static class FileSystemLauncher
 
             return StartProcess("xdg-open", path);
         }
-        catch
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (InvalidOperationException)
         {
             return false;
         }

@@ -237,7 +237,12 @@ public sealed class SettingsViewModel : ViewModelBase
 
         if (_downloadFolderService.TryNormalize(Config.DownloadFolder, out var normalized))
         {
-            Directory.CreateDirectory(normalized);
+            if (!_downloadFolderService.EnsureExists(normalized))
+            {
+                ValidationError = "Download folder path is invalid or cannot be created.";
+                return false;
+            }
+
             Config.DownloadFolder = normalized;
         }
 

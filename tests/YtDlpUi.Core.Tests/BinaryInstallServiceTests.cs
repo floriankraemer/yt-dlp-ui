@@ -19,7 +19,7 @@ public sealed class BinaryInstallServiceTests
             .Returns(BinaryInstallResult.Success("/tmp/yt-dlp"));
 
         var service = new BinaryInstallService(appConfig, new BinaryLocator(Path.GetTempPath()));
-        var result = await service.InstallAsync("yt-dlp", installer);
+        var result = await service.InstallAsync(ManagedBinary.YtDlp, installer);
         Assert.True(result.IsSuccess);
         Assert.Equal("/tmp/yt-dlp", config.YtDlpPath);
     }

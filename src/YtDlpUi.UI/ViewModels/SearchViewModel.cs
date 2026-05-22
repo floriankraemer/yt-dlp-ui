@@ -86,10 +86,7 @@ public sealed class SearchViewModel : ViewModelBase
 
     public async Task RefreshProfilesAsync()
     {
-        var profiles = (await _profileStore.ListAsync())
-            .OrderBy(profile => profile.Name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
+        var profiles = await ProfileListLoader.LoadOrderedAsync(_profileStore);
         Profiles.Clear();
         foreach (var profile in profiles)
             Profiles.Add(profile);

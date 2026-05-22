@@ -20,7 +20,7 @@ public sealed class SettingsViewModelDeleteTests : IDisposable
             appConfig,
             _profiles,
             new YtDlpCommandBuilder(catalog, new ExtraArgsTokenizer()),
-            new AppSettingsValidator(new ExtraArgsTokenizer()),
+            ViewModelTestHelpers.CreateValidator(),
             new BinaryLocator(_root),
             new JsRuntimeLocator());
         _viewModel = new SettingsViewModel(coordinator, catalog, _profiles, new DownloadFolderService());

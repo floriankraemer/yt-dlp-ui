@@ -9,16 +9,16 @@ public sealed class SettingsCoordinator
     private readonly IProfileStore _profileStore;
     private readonly YtDlpCommandBuilder _commandBuilder;
     private readonly AppSettingsValidator _validator;
-    private readonly BinaryLocator _binaryLocator;
-    private readonly JsRuntimeLocator _jsRuntimeLocator;
+    private readonly IBinaryLocator _binaryLocator;
+    private readonly IJsRuntimeLocator _jsRuntimeLocator;
 
     public SettingsCoordinator(
         IAppConfigStore appConfigStore,
         IProfileStore profileStore,
         YtDlpCommandBuilder commandBuilder,
         AppSettingsValidator validator,
-        BinaryLocator binaryLocator,
-        JsRuntimeLocator jsRuntimeLocator)
+        IBinaryLocator binaryLocator,
+        IJsRuntimeLocator jsRuntimeLocator)
     {
         _appConfigStore = appConfigStore;
         _profileStore = profileStore;

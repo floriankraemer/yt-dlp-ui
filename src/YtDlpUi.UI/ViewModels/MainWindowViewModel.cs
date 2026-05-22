@@ -3,6 +3,7 @@ using Avalonia.Threading;
 using YtDlpUi.Core.Abstractions;
 using YtDlpUi.Core.Models;
 using YtDlpUi.Core.Services;
+using YtDlpUi.UI.Services;
 
 namespace YtDlpUi.UI.ViewModels;
 
@@ -15,8 +16,9 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly YouTubeUrlNormalizer _urlNormalizer;
     private readonly IBinaryInstaller _ytDlpInstaller;
     private readonly IBinaryInstaller _ffmpegInstaller;
-    private readonly BinaryLocator _binaryLocator;
+    private readonly BinaryInstallService _binaryInstallService;
     private readonly DownloadFolderService _downloadFolderService;
+    private readonly IFileSystemLauncher _fileSystemLauncher;
 
     private string _urlInput = string.Empty;
     private string? _statusMessage = "Paste a URL and click Add to download.";
@@ -36,7 +38,8 @@ public sealed class MainWindowViewModel : ViewModelBase
         YouTubeUrlNormalizer urlNormalizer,
         IBinaryInstaller ytDlpInstaller,
         IBinaryInstaller ffmpegInstaller,
-        BinaryLocator binaryLocator)
+        BinaryInstallService binaryInstallService,
+        IFileSystemLauncher fileSystemLauncher)
     {
         _queue = queue;
         _appConfigStore = appConfigStore;
@@ -46,7 +49,8 @@ public sealed class MainWindowViewModel : ViewModelBase
         _urlNormalizer = urlNormalizer;
         _ytDlpInstaller = ytDlpInstaller;
         _ffmpegInstaller = ffmpegInstaller;
-        _binaryLocator = binaryLocator;
+        _binaryInstallService = binaryInstallService;
+        _fileSystemLauncher = fileSystemLauncher;
         Jobs = new ObservableCollection<DownloadJobViewModel>();
         Profiles = new ObservableCollection<DownloadProfile>();
         _queue.JobsChanged += (_, _) => ScheduleRefreshJobs();
@@ -119,17 +123,12 @@ public sealed class MainWindowViewModel : ViewModelBase
         _loadingProfiles = true;
         try
         {
-            var profiles = (await _profileStore.ListAsync())
-                .OrderBy(profile => profile.Name, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
+            var (profiles, selected) = await ProfileListLoader.LoadWithSelectionAsync(_profileStore, _appConfigStore);
             Profiles.Clear();
             foreach (var profile in profiles)
                 Profiles.Add(profile);
 
-            var config = await _appConfigStore.LoadAsync();
-            _selectedProfile = Profiles.FirstOrDefault(profile => profile.Id == config.ActiveProfileId)
-                ?? Profiles.FirstOrDefault();
+            _selectedProfile = selected;
             OnPropertyChanged(nameof(SelectedProfile));
         }
         finally
@@ -153,14 +152,8 @@ public sealed class MainWindowViewModel : ViewModelBase
         if (!_downloadFolderService.TryNormalize(path, out var normalized))
             return (false, "Enter a valid download folder path.");
 
-        try
-        {
-            Directory.CreateDirectory(normalized);
-        }
-        catch (Exception ex)
-        {
-            return (false, $"Could not create folder: {ex.Message}");
-        }
+        if (!_downloadFolderService.EnsureExists(normalized))
+            return (false, "Could not create folder.");
 
         var config = await _appConfigStore.LoadAsync();
         config.DownloadFolder = normalized;
@@ -229,42 +222,62 @@ public sealed class MainWindowViewModel : ViewModelBase
         SyncJobs();
     }
 
-    public async Task InstallYtDlpAsync()
+    public bool TryOpenOutput(DownloadJobViewModel jobViewModel)
     {
-        await RunInstallAsync("yt-dlp", _ytDlpInstaller);
+        var job = _queue.Jobs.FirstOrDefault(item => item.Id == jobViewModel.Id);
+        if (job is null)
+        {
+            ErrorMessage = "Download is no longer in the queue.";
+            return false;
+        }
+
+        var target = DownloadOutputResolver.Resolve(job);
+        if (!target.CanOpen)
+        {
+            ErrorMessage = "Could not find the downloaded file.";
+            return false;
+        }
+
+        var opened = target.IsSingleFile
+            ? _fileSystemLauncher.TryOpenFile(target.Path)
+            : _fileSystemLauncher.TryOpenLocation(target.Path);
+
+        if (!opened)
+            ErrorMessage = "Could not open the download location.";
+
+        return opened;
     }
 
-    public async Task InstallFfmpegAsync()
-    {
-        await RunInstallAsync("ffmpeg", _ffmpegInstaller);
-    }
+    public async Task InstallYtDlpAsync() =>
+        await RunInstallAsync(ManagedBinary.YtDlp, _ytDlpInstaller, "yt-dlp");
+
+    public async Task InstallFfmpegAsync() =>
+        await RunInstallAsync(ManagedBinary.Ffmpeg, _ffmpegInstaller, "ffmpeg");
 
     public async Task RefreshBinaryStatusAsync()
     {
-        var installService = new BinaryInstallService(_appConfigStore, _binaryLocator);
-        var (ytDlp, ffmpeg) = await installService.GetStatusAsync();
+        var (ytDlp, ffmpeg) = await _binaryInstallService.GetStatusAsync();
         YtDlpStatus = ytDlp;
         FfmpegStatus = ffmpeg;
     }
 
-    private async Task RunInstallAsync(string name, IBinaryInstaller installer)
+    private async Task RunInstallAsync(ManagedBinary binary, IBinaryInstaller installer, string displayName)
     {
         IsBusy = true;
         ErrorMessage = null;
-        StatusMessage = $"Installing {name}...";
+        StatusMessage = $"Installing {displayName}...";
 
         try
         {
-            var installService = new BinaryInstallService(_appConfigStore, _binaryLocator);
-            var result = await installService.InstallAsync(name, installer);
+            var result = await _binaryInstallService.InstallAsync(binary, installer);
             if (!result.IsSuccess)
             {
-                ErrorMessage = result.Error ?? $"Failed to install {name}.";
+                ErrorMessage = result.Error ?? $"Failed to install {displayName}.";
                 return;
             }
 
             await RefreshBinaryStatusAsync();
-            StatusMessage = $"{name} installed.";
+            StatusMessage = $"{displayName} installed.";
         }
         catch (Exception ex)
         {
@@ -288,13 +301,20 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private void ScheduleRefreshJobs()
     {
-        if (Dispatcher.UIThread.CheckAccess())
+        try
+        {
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                SyncJobs();
+                return;
+            }
+
+            _ = Dispatcher.UIThread.InvokeAsync(SyncJobs);
+        }
+        catch (InvalidOperationException)
         {
             SyncJobs();
-            return;
         }
-
-        _ = Dispatcher.UIThread.InvokeAsync(SyncJobs);
     }
 
     private void SyncJobs()
@@ -323,19 +343,6 @@ public sealed class MainWindowViewModel : ViewModelBase
         if (failed is not null)
             ErrorMessage = failed.Error;
 
-        var running = queueJobs.Count(j => j.Status == DownloadStatus.Running);
-        var queued = queueJobs.Count(j => j.Status == DownloadStatus.Queued);
-        var failedCount = queueJobs.Count(j => j.Status == DownloadStatus.Failed);
-
-        if (running > 0)
-            StatusMessage = running == 1 ? "Downloading…" : $"{running} downloads running…";
-        else if (queued > 0)
-            StatusMessage = queued == 1 ? "1 item queued (starting…)" : $"{queued} items queued (starting…)";
-        else if (failedCount > 0)
-            StatusMessage = failedCount == 1 ? "Download failed." : $"{failedCount} downloads failed.";
-        else if (queueJobs.Count > 0 && queueJobs.All(j => j.Status == DownloadStatus.Completed))
-            StatusMessage = queueJobs.Count == 1 ? "Download completed." : "All downloads completed.";
-        else if (queueJobs.Count == 0)
-            StatusMessage = "Paste a URL and click Add to download.";
+        StatusMessage = QueueStatusMessageBuilder.Build(queueJobs);
     }
 }

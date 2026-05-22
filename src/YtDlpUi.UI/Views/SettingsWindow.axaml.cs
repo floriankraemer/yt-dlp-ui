@@ -1,11 +1,10 @@
-using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
-using Avalonia.Platform.Storage;
 using YtDlpUi.Core.Models;
+using YtDlpUi.UI.Services;
 using YtDlpUi.UI.ViewModels;
 
 namespace YtDlpUi.UI.Views;
@@ -160,62 +159,18 @@ public sealed partial class SettingsWindow : Window
     private async void BrowseJsRuntime_Click(object? sender, RoutedEventArgs e) =>
         await BrowseExecutableAsync(path => ViewModel.JsRuntimePath = path);
 
-    private async void BrowseDownloadFolder_Click(object? sender, RoutedEventArgs e) =>
-        await BrowseFolderAsync(path => ViewModel.DownloadFolder = path);
+    private async void BrowseDownloadFolder_Click(object? sender, RoutedEventArgs e)
+    {
+        var path = await App.Services.StoragePicker.PickFolderAsync(this);
+        if (!string.IsNullOrWhiteSpace(path))
+            ViewModel.DownloadFolder = path;
+    }
 
     private async Task BrowseExecutableAsync(Action<string> assignPath)
     {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel?.StorageProvider is not { } storageProvider)
-            return;
-
-        var files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Select executable",
-            AllowMultiple = false,
-            FileTypeFilter = GetExecutableFileTypes(),
-        });
-
-        if (files.Count == 0)
-            return;
-
-        var path = files[0].TryGetLocalPath();
+        var path = await App.Services.StoragePicker.PickExecutableAsync(this);
         if (!string.IsNullOrWhiteSpace(path))
             assignPath(path);
-    }
-
-    private async Task BrowseFolderAsync(Action<string> assignPath)
-    {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel?.StorageProvider is not { } storageProvider)
-            return;
-
-        var folders = await storageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-        {
-            Title = "Select download folder",
-            AllowMultiple = false,
-        });
-
-        if (folders.Count == 0)
-            return;
-
-        var path = folders[0].TryGetLocalPath();
-        if (!string.IsNullOrWhiteSpace(path))
-            assignPath(path);
-    }
-
-    private static List<FilePickerFileType> GetExecutableFileTypes()
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            return
-            [
-                new FilePickerFileType("Executable") { Patterns = ["*.exe", "*.bat", "*.cmd"] },
-                new FilePickerFileType("All files") { Patterns = ["*"] },
-            ];
-        }
-
-        return [new FilePickerFileType("All files") { Patterns = ["*"] }];
     }
 
     private async void CreateProfile_Click(object? sender, RoutedEventArgs e) =>

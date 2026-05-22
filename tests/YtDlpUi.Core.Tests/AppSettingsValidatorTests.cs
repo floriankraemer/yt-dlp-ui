@@ -5,7 +5,7 @@ namespace YtDlpUi.Core.Tests;
 
 public sealed class AppSettingsValidatorTests
 {
-    private readonly AppSettingsValidator _validator = new(new ExtraArgsTokenizer());
+    private readonly AppSettingsValidator _validator = new(new ExtraArgsTokenizer(), new DownloadFolderService());
 
     [Fact]
     public void Validate_RejectsInvalidConcurrency()

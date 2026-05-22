@@ -4,8 +4,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using YtDlpUi.Core.Models;
-using YtDlpUi.Core.Services;
 using YtDlpUi.UI.Services;
 using YtDlpUi.UI.ViewModels;
 
@@ -13,6 +11,8 @@ namespace YtDlpUi.UI.Views;
 
 public sealed partial class MainWindow : Window
 {
+    private const int ColumnSaveDebounceMs = 400;
+
     private CancellationTokenSource? _columnSaveDebounce;
     private DownloadJobViewModel? _contextMenuJob;
 
@@ -60,7 +60,7 @@ public sealed partial class MainWindow : Window
         {
             try
             {
-                await Task.Delay(400, token);
+                await Task.Delay(ColumnSaveDebounceMs, token);
                 await Dispatcher.UIThread.InvokeAsync(SaveColumnWidthsAsync);
             }
             catch (OperationCanceledException)
@@ -196,26 +196,7 @@ public sealed partial class MainWindow : Window
         if (ResolveJob(sender) is not DownloadJobViewModel jobViewModel)
             return;
 
-        var job = App.Services.Queue.Jobs.FirstOrDefault(item => item.Id == jobViewModel.Id);
-        if (job is null)
-        {
-            ViewModel.SetErrorMessage("Download is no longer in the queue.");
-            return;
-        }
-
-        var target = DownloadOutputResolver.Resolve(job);
-        if (!target.CanOpen)
-        {
-            ViewModel.SetErrorMessage("Could not find the downloaded file.");
-            return;
-        }
-
-        var opened = target.IsSingleFile
-            ? FileSystemLauncher.TryOpenFile(target.Path)
-            : FileSystemLauncher.TryOpenLocation(target.Path);
-
-        if (!opened)
-            ViewModel.SetErrorMessage("Could not open the download location.");
+        ViewModel.TryOpenOutput(jobViewModel);
     }
 
     private DownloadJobViewModel? ResolveJob(object? sender) =>

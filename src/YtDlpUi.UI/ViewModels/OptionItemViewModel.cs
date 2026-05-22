@@ -9,7 +9,7 @@ public sealed class OptionItemViewModel : ViewModelBase
     public OptionItemViewModel(YtDlpOptionDefinition definition, object? initialValue)
     {
         Definition = definition;
-        _value = initialValue ?? ParseDefault(definition);
+        _value = initialValue ?? OptionValueParser.ParseDefault(definition);
     }
 
     public YtDlpOptionDefinition Definition { get; }
@@ -36,35 +36,6 @@ public sealed class OptionItemViewModel : ViewModelBase
     public string StringValue
     {
         get => Convert.ToString(_value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
-        set
-        {
-            if (string.Equals(ValueType, "int", StringComparison.OrdinalIgnoreCase)
-                && int.TryParse(value, out var intValue))
-                Value = intValue;
-            else if (string.Equals(ValueType, "double", StringComparison.OrdinalIgnoreCase)
-                && double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var doubleValue))
-                Value = doubleValue;
-            else
-                Value = value;
-        }
-    }
-
-    private static object? ParseDefault(YtDlpOptionDefinition definition)
-    {
-        if (definition.DefaultValue is null)
-            return definition.ValueType.Equals("bool", StringComparison.OrdinalIgnoreCase) ? false : string.Empty;
-
-        if (definition.ValueType.Equals("bool", StringComparison.OrdinalIgnoreCase))
-            return bool.TryParse(definition.DefaultValue, out var b) && b;
-
-        if (definition.ValueType.Equals("int", StringComparison.OrdinalIgnoreCase)
-            && int.TryParse(definition.DefaultValue, out var i))
-            return i;
-
-        if (definition.ValueType.Equals("double", StringComparison.OrdinalIgnoreCase)
-            && double.TryParse(definition.DefaultValue, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var d))
-            return d;
-
-        return definition.DefaultValue;
+        set => Value = OptionValueParser.ParseFromString(ValueType, value);
     }
 }

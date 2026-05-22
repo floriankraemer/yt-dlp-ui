@@ -18,7 +18,7 @@ public sealed class SettingsViewModelTests : IDisposable
             appConfig,
             profiles,
             new YtDlpCommandBuilder(catalog, new ExtraArgsTokenizer()),
-            new AppSettingsValidator(new ExtraArgsTokenizer()),
+            ViewModelTestHelpers.CreateValidator(),
             new BinaryLocator(_root),
             new JsRuntimeLocator());
         _viewModel = new SettingsViewModel(coordinator, catalog, profiles, new DownloadFolderService());

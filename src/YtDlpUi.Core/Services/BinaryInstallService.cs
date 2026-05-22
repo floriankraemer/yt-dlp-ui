@@ -6,16 +6,16 @@ namespace YtDlpUi.Core.Services;
 public sealed class BinaryInstallService
 {
     private readonly IAppConfigStore _appConfigStore;
-    private readonly BinaryLocator _binaryLocator;
+    private readonly IBinaryLocator _binaryLocator;
 
-    public BinaryInstallService(IAppConfigStore appConfigStore, BinaryLocator binaryLocator)
+    public BinaryInstallService(IAppConfigStore appConfigStore, IBinaryLocator binaryLocator)
     {
         _appConfigStore = appConfigStore;
         _binaryLocator = binaryLocator;
     }
 
     public async Task<BinaryInstallResult> InstallAsync(
-        string binaryName,
+        ManagedBinary binary,
         IBinaryInstaller installer,
         CancellationToken cancellationToken = default)
     {
@@ -24,7 +24,7 @@ public sealed class BinaryInstallService
             return result;
 
         var config = await _appConfigStore.LoadAsync(cancellationToken);
-        if (string.Equals(binaryName, "yt-dlp", StringComparison.OrdinalIgnoreCase))
+        if (binary == ManagedBinary.YtDlp)
             config.YtDlpPath = result.InstalledPath;
         else
             config.FfmpegPath = result.InstalledPath;

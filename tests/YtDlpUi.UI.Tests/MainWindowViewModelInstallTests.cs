@@ -1,7 +1,6 @@
 using NSubstitute;
 using YtDlpUi.Core.Abstractions;
 using YtDlpUi.Core.Models;
-using YtDlpUi.Core.Services;
 using YtDlpUi.UI.ViewModels;
 
 namespace YtDlpUi.UI.Tests;
@@ -22,16 +21,11 @@ public sealed class MainWindowViewModelInstallTests
         ffmpegInstaller.InstallAsync(Arg.Any<CancellationToken>())
             .Returns(BinaryInstallResult.Success("/tmp/ffmpeg"));
 
-        var vm = new MainWindowViewModel(
+        var vm = ViewModelTestHelpers.CreateMainViewModel(
             queue,
             appConfig,
-            Substitute.For<IProfileStore>(),
-            ViewModelTestHelpers.CreateEnqueueCoordinator(queue),
-            new DownloadFolderService(),
-            new YouTubeUrlNormalizer(),
-            Substitute.For<IBinaryInstaller>(),
-            ffmpegInstaller,
-            new BinaryLocator(Path.GetTempPath()));
+            ffmpegInstaller: ffmpegInstaller,
+            binaryInstallService: ViewModelTestHelpers.CreateBinaryInstallService(appConfig));
 
         await vm.InstallFfmpegAsync();
         Assert.Equal("/tmp/ffmpeg", config.FfmpegPath);
@@ -47,16 +41,9 @@ public sealed class MainWindowViewModelInstallTests
         installer.InstallAsync(Arg.Any<CancellationToken>())
             .Returns(BinaryInstallResult.Failure("network error"));
 
-        var vm = new MainWindowViewModel(
+        var vm = ViewModelTestHelpers.CreateMainViewModel(
             queue,
-            Substitute.For<IAppConfigStore>(),
-            Substitute.For<IProfileStore>(),
-            ViewModelTestHelpers.CreateEnqueueCoordinator(queue),
-            new DownloadFolderService(),
-            new YouTubeUrlNormalizer(),
-            installer,
-            Substitute.For<IBinaryInstaller>(),
-            new BinaryLocator(Path.GetTempPath()));
+            ytDlpInstaller: installer);
 
         await vm.InstallYtDlpAsync();
         Assert.Equal("network error", vm.ErrorMessage);
@@ -69,16 +56,7 @@ public sealed class MainWindowViewModelInstallTests
         var queue = Substitute.For<IDownloadQueueService>();
         queue.Jobs.Returns([job]);
 
-        var vm = new MainWindowViewModel(
-            queue,
-            Substitute.For<IAppConfigStore>(),
-            Substitute.For<IProfileStore>(),
-            ViewModelTestHelpers.CreateEnqueueCoordinator(queue),
-            new DownloadFolderService(),
-            new YouTubeUrlNormalizer(),
-            Substitute.For<IBinaryInstaller>(),
-            Substitute.For<IBinaryInstaller>(),
-            new BinaryLocator(Path.GetTempPath()));
+        var vm = ViewModelTestHelpers.CreateMainViewModel(queue);
 
         queue.JobsChanged += Raise.EventWith(queue, EventArgs.Empty);
         Assert.Single(vm.Jobs);

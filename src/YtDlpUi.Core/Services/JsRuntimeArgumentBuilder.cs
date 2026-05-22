@@ -1,3 +1,4 @@
+using YtDlpUi.Core.Abstractions;
 using YtDlpUi.Core.Constants;
 using YtDlpUi.Core.Models;
 
@@ -5,7 +6,7 @@ namespace YtDlpUi.Core.Services;
 
 public static class JsRuntimeArgumentBuilder
 {
-    public static string? Build(AppConfiguration config, JsRuntimeLocator locator)
+    public static string? Build(AppConfiguration config, IJsRuntimeLocator locator)
     {
         if (string.IsNullOrWhiteSpace(config.JsRuntimeEngine)
             || !JsRuntimeEngines.IsSupported(config.JsRuntimeEngine))

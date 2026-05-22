@@ -32,10 +32,6 @@ public sealed class YtDlpProgressParser
         "Remux",
     ];
 
-    private static readonly Regex AnsiEscapeRegex = new(
-        @"\x1b\[[0-9;]*[A-Za-z]",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
     private static readonly Regex DefaultDownloadPercentRegex = new(
         @"\[download\][^\d%]*([\d.]+)\s*%",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -76,7 +72,7 @@ public sealed class YtDlpProgressParser
         if (string.IsNullOrWhiteSpace(line))
             return false;
 
-        line = StripAnsi(line).Trim();
+        line = ConsoleOutputSanitizer.StripAnsi(line).Trim();
         if (line.Length == 0)
             return false;
 
@@ -275,6 +271,4 @@ public sealed class YtDlpProgressParser
         string.IsNullOrWhiteSpace(value)
         || value.Equals("N/A", StringComparison.OrdinalIgnoreCase)
         || value.Equals("NA", StringComparison.OrdinalIgnoreCase);
-
-    private static string StripAnsi(string line) => AnsiEscapeRegex.Replace(line, string.Empty);
 }
