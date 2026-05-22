@@ -53,7 +53,7 @@ public sealed class MainWindowViewModelErrorTests
     }
 
     [Fact]
-    public async Task InitializeAsync_LoadsBinaryStatus()
+    public async Task InitializeAsync_LoadsProfiles()
     {
         var queue = Substitute.For<IDownloadQueueService>();
         queue.Jobs.Returns(Array.Empty<DownloadJob>());
@@ -61,11 +61,15 @@ public sealed class MainWindowViewModelErrorTests
         var appConfig = Substitute.For<IAppConfigStore>();
         appConfig.EnsureBootstrapAsync(Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
         appConfig.LoadAsync(Arg.Any<CancellationToken>())
-            .Returns(new AppConfiguration());
+            .Returns(new AppConfiguration { ActiveProfileId = "default" });
 
-        var vm = ViewModelTestHelpers.CreateMainViewModel(queue, appConfig);
+        var profileStore = Substitute.For<IProfileStore>();
+        profileStore.ListAsync(Arg.Any<CancellationToken>())
+            .Returns([new DownloadProfile { Id = "default", Name = "Default" }]);
+
+        var vm = ViewModelTestHelpers.CreateMainViewModel(queue, appConfig, profileStore);
 
         await vm.InitializeAsync();
-        Assert.Contains("yt-dlp", vm.YtDlpStatus ?? string.Empty);
+        Assert.Single(vm.Profiles);
     }
 }

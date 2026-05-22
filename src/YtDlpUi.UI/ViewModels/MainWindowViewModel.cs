@@ -14,18 +14,12 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly IProfileStore _profileStore;
     private readonly DownloadEnqueueCoordinator _enqueueCoordinator;
     private readonly YouTubeUrlNormalizer _urlNormalizer;
-    private readonly IBinaryInstaller _ytDlpInstaller;
-    private readonly IBinaryInstaller _ffmpegInstaller;
-    private readonly BinaryInstallService _binaryInstallService;
     private readonly DownloadFolderService _downloadFolderService;
     private readonly IFileSystemLauncher _fileSystemLauncher;
 
     private string _urlInput = string.Empty;
     private string? _statusMessage = "Paste a URL and click Add to download.";
     private string? _errorMessage;
-    private string? _ytDlpStatus;
-    private string? _ffmpegStatus;
-    private bool _isBusy;
     private bool _loadingProfiles;
     private DownloadProfile? _selectedProfile;
 
@@ -36,9 +30,6 @@ public sealed class MainWindowViewModel : ViewModelBase
         DownloadEnqueueCoordinator enqueueCoordinator,
         DownloadFolderService downloadFolderService,
         YouTubeUrlNormalizer urlNormalizer,
-        IBinaryInstaller ytDlpInstaller,
-        IBinaryInstaller ffmpegInstaller,
-        BinaryInstallService binaryInstallService,
         IFileSystemLauncher fileSystemLauncher)
     {
         _queue = queue;
@@ -47,9 +38,6 @@ public sealed class MainWindowViewModel : ViewModelBase
         _enqueueCoordinator = enqueueCoordinator;
         _downloadFolderService = downloadFolderService;
         _urlNormalizer = urlNormalizer;
-        _ytDlpInstaller = ytDlpInstaller;
-        _ffmpegInstaller = ffmpegInstaller;
-        _binaryInstallService = binaryInstallService;
         _fileSystemLauncher = fileSystemLauncher;
         Jobs = new ObservableCollection<DownloadJobViewModel>();
         Profiles = new ObservableCollection<DownloadProfile>();
@@ -92,29 +80,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         private set => SetProperty(ref _errorMessage, value);
     }
 
-    public string? YtDlpStatus
-    {
-        get => _ytDlpStatus;
-        private set => SetProperty(ref _ytDlpStatus, value);
-    }
-
-    public string? FfmpegStatus
-    {
-        get => _ffmpegStatus;
-        private set => SetProperty(ref _ffmpegStatus, value);
-    }
-
-    public bool IsBusy
-    {
-        get => _isBusy;
-        private set => SetProperty(ref _isBusy, value);
-    }
-
     public async Task InitializeAsync()
     {
         await _appConfigStore.EnsureBootstrapAsync();
         await RefreshProfilesAsync();
-        await RefreshBinaryStatusAsync();
         SyncJobs();
     }
 
@@ -246,47 +215,6 @@ public sealed class MainWindowViewModel : ViewModelBase
             ErrorMessage = "Could not open the download location.";
 
         return opened;
-    }
-
-    public async Task InstallYtDlpAsync() =>
-        await RunInstallAsync(ManagedBinary.YtDlp, _ytDlpInstaller, "yt-dlp");
-
-    public async Task InstallFfmpegAsync() =>
-        await RunInstallAsync(ManagedBinary.Ffmpeg, _ffmpegInstaller, "ffmpeg");
-
-    public async Task RefreshBinaryStatusAsync()
-    {
-        var (ytDlp, ffmpeg) = await _binaryInstallService.GetStatusAsync();
-        YtDlpStatus = ytDlp;
-        FfmpegStatus = ffmpeg;
-    }
-
-    private async Task RunInstallAsync(ManagedBinary binary, IBinaryInstaller installer, string displayName)
-    {
-        IsBusy = true;
-        ErrorMessage = null;
-        StatusMessage = $"Installing {displayName}...";
-
-        try
-        {
-            var result = await _binaryInstallService.InstallAsync(binary, installer);
-            if (!result.IsSuccess)
-            {
-                ErrorMessage = result.Error ?? $"Failed to install {displayName}.";
-                return;
-            }
-
-            await RefreshBinaryStatusAsync();
-            StatusMessage = $"{displayName} installed.";
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
-        }
-        finally
-        {
-            IsBusy = false;
-        }
     }
 
     private async Task PersistActiveProfileAsync(string profileId)

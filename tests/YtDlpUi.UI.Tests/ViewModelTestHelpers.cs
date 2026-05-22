@@ -38,9 +38,6 @@ internal static class ViewModelTestHelpers
         IProfileStore? profileStore = null,
         DownloadEnqueueCoordinator? enqueueCoordinator = null,
         DownloadFolderService? downloadFolderService = null,
-        IBinaryInstaller? ytDlpInstaller = null,
-        IBinaryInstaller? ffmpegInstaller = null,
-        BinaryInstallService? binaryInstallService = null,
         IFileSystemLauncher? fileSystemLauncher = null)
     {
         if (queue is null)
@@ -60,9 +57,26 @@ internal static class ViewModelTestHelpers
             enqueueCoordinator ?? CreateEnqueueCoordinator(queue, appConfig, profileStore),
             downloadFolderService,
             new YouTubeUrlNormalizer(),
+            fileSystemLauncher ?? Substitute.For<IFileSystemLauncher>());
+    }
+
+    public static SettingsViewModel CreateSettingsViewModel(
+        SettingsCoordinator coordinator,
+        IProfileStore profileStore,
+        string configRoot,
+        IBinaryInstaller? ytDlpInstaller = null,
+        IBinaryInstaller? ffmpegInstaller = null,
+        BinaryInstallService? binaryInstallService = null)
+    {
+        var catalog = new YtDlpOptionCatalog();
+        var appConfig = new AppConfigStore(configRoot, profileStore);
+        return new SettingsViewModel(
+            coordinator,
+            catalog,
+            profileStore,
+            new DownloadFolderService(),
             ytDlpInstaller ?? Substitute.For<IBinaryInstaller>(),
             ffmpegInstaller ?? Substitute.For<IBinaryInstaller>(),
-            binaryInstallService ?? CreateBinaryInstallService(appConfig),
-            fileSystemLauncher ?? Substitute.For<IFileSystemLauncher>());
+            binaryInstallService ?? CreateBinaryInstallService(appConfig, new BinaryLocator(configRoot)));
     }
 }

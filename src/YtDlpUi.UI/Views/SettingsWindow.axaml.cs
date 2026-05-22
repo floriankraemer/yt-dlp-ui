@@ -41,10 +41,10 @@ public sealed partial class SettingsWindow : Window
 
     private void InitializeSections()
     {
+        RegisterSection("Profiles", ProfilesPanel);
         RegisterSection("Appearance", AppearancePanel);
         RegisterSection("Binaries", BinariesPanel);
         RegisterSection("Queue", QueuePanel);
-        RegisterSection("Profiles", ProfilesPanel);
         BuildOptionSections();
         RegisterSection("Advanced", AdvancedPanel);
 
@@ -131,6 +131,12 @@ public sealed partial class SettingsWindow : Window
     }
 
     private void Cancel_Click(object? sender, RoutedEventArgs e) => Close();
+
+    private async void InstallYtDlp_Click(object? sender, RoutedEventArgs e) =>
+        await ViewModel.InstallYtDlpAsync();
+
+    private async void InstallFfmpeg_Click(object? sender, RoutedEventArgs e) =>
+        await ViewModel.InstallFfmpegAsync();
 
     private async void TestYtDlp_Click(object? sender, RoutedEventArgs e)
     {

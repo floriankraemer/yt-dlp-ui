@@ -13,6 +13,9 @@ public sealed class SettingsViewModel : ViewModelBase
     private readonly YtDlpOptionCatalog _catalog;
     private readonly IProfileStore _profileStore;
     private readonly DownloadFolderService _downloadFolderService;
+    private readonly IBinaryInstaller _ytDlpInstaller;
+    private readonly IBinaryInstaller _ffmpegInstaller;
+    private readonly BinaryInstallService _binaryInstallService;
 
     private AppConfiguration _config = new();
     private DownloadProfile _profile = new() { Id = "default", Name = "Default" };
@@ -21,17 +24,24 @@ public sealed class SettingsViewModel : ViewModelBase
     private string _cliPreview = string.Empty;
     private string _newProfileName = string.Empty;
     private JsRuntimeEngineDefinition _selectedJsRuntime = JsRuntimeEngines.All[0];
+    private bool _isInstalling;
 
     public SettingsViewModel(
         SettingsCoordinator coordinator,
         YtDlpOptionCatalog catalog,
         IProfileStore profileStore,
-        DownloadFolderService downloadFolderService)
+        DownloadFolderService downloadFolderService,
+        IBinaryInstaller ytDlpInstaller,
+        IBinaryInstaller ffmpegInstaller,
+        BinaryInstallService binaryInstallService)
     {
         _coordinator = coordinator;
         _catalog = catalog;
         _profileStore = profileStore;
         _downloadFolderService = downloadFolderService;
+        _ytDlpInstaller = ytDlpInstaller;
+        _ffmpegInstaller = ffmpegInstaller;
+        _binaryInstallService = binaryInstallService;
         Profiles = new ObservableCollection<DownloadProfile>();
         OptionSections = new ObservableCollection<OptionSectionViewModel>();
     }
@@ -84,6 +94,12 @@ public sealed class SettingsViewModel : ViewModelBase
     {
         get => _newProfileName;
         set => SetProperty(ref _newProfileName, value);
+    }
+
+    public bool IsInstalling
+    {
+        get => _isInstalling;
+        private set => SetProperty(ref _isInstalling, value);
     }
 
     public ThemePreference ThemePreference
@@ -201,6 +217,16 @@ public sealed class SettingsViewModel : ViewModelBase
     {
         var (config, profiles) = await _coordinator.LoadAsync();
         Config = config;
+
+        if (string.IsNullOrWhiteSpace(Config.YtDlpPath))
+            Config.YtDlpPath = _coordinator.ResolveYtDlpPath(Config);
+
+        if (string.IsNullOrWhiteSpace(Config.FfmpegPath))
+            Config.FfmpegPath = _coordinator.ResolveFfmpegPath(Config);
+
+        if (string.IsNullOrWhiteSpace(Config.JsRuntimePath))
+            Config.JsRuntimePath = _coordinator.ResolveJsRuntimePath(Config);
+
         Profiles.Clear();
         foreach (var profile in profiles)
             Profiles.Add(profile);
@@ -218,7 +244,16 @@ public sealed class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(ResolvedJsRuntimePath));
         OnPropertyChanged(nameof(JsRuntimesArgumentPreview));
         OnPropertyChanged(nameof(ThemePreference));
+        OnPropertyChanged(nameof(YtDlpPath));
+        OnPropertyChanged(nameof(FfmpegPath));
+        OnPropertyChanged(nameof(JsRuntimePath));
     }
+
+    public Task InstallYtDlpAsync() =>
+        RunInstallAsync(ManagedBinary.YtDlp, _ytDlpInstaller, "yt-dlp");
+
+    public Task InstallFfmpegAsync() =>
+        RunInstallAsync(ManagedBinary.Ffmpeg, _ffmpegInstaller, "ffmpeg");
 
     public async Task<bool> SaveAsync()
     {
@@ -328,6 +363,48 @@ public sealed class SettingsViewModel : ViewModelBase
     }
 
     public void OnOptionChanged() => UpdateCliPreview();
+
+    private async Task RunInstallAsync(ManagedBinary binary, IBinaryInstaller installer, string displayName)
+    {
+        IsInstalling = true;
+        ValidationError = null;
+        StatusMessage = $"Installing {displayName}...";
+
+        try
+        {
+            var result = await _binaryInstallService.InstallAsync(binary, installer);
+            if (!result.IsSuccess)
+            {
+                ValidationError = result.Error ?? $"Failed to install {displayName}.";
+                StatusMessage = null;
+                return;
+            }
+
+            var (config, _) = await _coordinator.LoadAsync();
+            Config = config;
+
+            if (binary == ManagedBinary.YtDlp)
+            {
+                YtDlpPath = config.YtDlpPath ?? string.Empty;
+            }
+            else
+            {
+                FfmpegPath = config.FfmpegPath ?? string.Empty;
+            }
+
+            ValidationError = null;
+            StatusMessage = $"{displayName} installed.";
+        }
+        catch (Exception ex)
+        {
+            ValidationError = ex.Message;
+            StatusMessage = null;
+        }
+        finally
+        {
+            IsInstalling = false;
+        }
+    }
 
     private void RebuildOptionSections()
     {

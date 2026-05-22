@@ -225,12 +225,6 @@ public sealed partial class MainWindow : Window
         return dataGrid.SelectedItem as DownloadJobViewModel;
     }
 
-    private async void InstallYtDlp_Click(object? sender, RoutedEventArgs e) =>
-        await ViewModel.InstallYtDlpAsync();
-
-    private async void InstallFfmpeg_Click(object? sender, RoutedEventArgs e) =>
-        await ViewModel.InstallFfmpegAsync();
-
     private async void Search_Click(object? sender, RoutedEventArgs e)
     {
         var window = new SearchWindow();
@@ -242,6 +236,5 @@ public sealed partial class MainWindow : Window
         var window = new SettingsWindow();
         await window.ShowDialog(this);
         await ViewModel.RefreshProfilesAsync();
-        await ViewModel.RefreshBinaryStatusAsync();
     }
 }

@@ -21,7 +21,7 @@ public sealed class SettingsViewModelValidationTests : IDisposable
             ViewModelTestHelpers.CreateValidator(),
             new BinaryLocator(_root),
             new JsRuntimeLocator());
-        _viewModel = new SettingsViewModel(coordinator, catalog, profiles, new DownloadFolderService());
+        _viewModel = ViewModelTestHelpers.CreateSettingsViewModel(coordinator, profiles, _root);
     }
 
     [Fact]

@@ -66,7 +66,7 @@ public sealed class SettingsCoordinator
     {
         var path = ResolveYtDlpPath(config);
         if (path is null)
-            return "yt-dlp executable not found. Set a path below or use Install yt-dlp on the main window.";
+            return "yt-dlp executable not found. Set a path below or use Install.";
 
         var version = await YtDlpProcessRunner.GetVersionAsync(path, cancellationToken);
         return version ?? "yt-dlp test failed. Check the path and try again.";
@@ -76,7 +76,7 @@ public sealed class SettingsCoordinator
     {
         var path = ResolveFfmpegPath(config);
         if (path is null)
-            return "ffmpeg executable not found. Set a path below or use Install ffmpeg on the main window.";
+            return "ffmpeg executable not found. Set a path below or use Install.";
 
         var version = await YtDlpProcessRunner.GetFirstOutputLineAsync(path, ["-version"], cancellationToken);
         return version ?? "ffmpeg test failed. Check the path and try again.";

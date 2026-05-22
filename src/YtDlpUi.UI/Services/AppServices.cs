@@ -100,9 +100,6 @@ public sealed class AppServices
         EnqueueCoordinator,
         DownloadFolderService,
         UrlNormalizer,
-        YtDlpInstaller,
-        FfmpegInstaller,
-        BinaryInstallService,
         FileSystemLauncher);
 
     public SearchViewModel CreateSearchViewModel() => new(
@@ -124,5 +121,8 @@ public sealed class AppServices
         CreateSettingsCoordinator(),
         Catalog,
         ProfileStore,
-        DownloadFolderService);
+        DownloadFolderService,
+        YtDlpInstaller,
+        FfmpegInstaller,
+        BinaryInstallService);
 }
