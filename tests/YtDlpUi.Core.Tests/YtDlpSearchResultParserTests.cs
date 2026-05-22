@@ -78,4 +78,66 @@ public sealed class YtDlpSearchResultParserTests
 
         Assert.Empty(_parser.Parse(json));
     }
+
+    [Fact]
+    public void Parse_NumericDuration_ParsesDurationSeconds()
+    {
+        const string json = """
+            {
+              "entries": [
+                {
+                  "id": "abc123",
+                  "title": "Timed Video",
+                  "duration": 176.4
+                }
+              ]
+            }
+            """;
+
+        var results = _parser.Parse(json);
+
+        Assert.Single(results);
+        Assert.Equal(176, results[0].DurationSeconds);
+    }
+
+    [Fact]
+    public void Parse_DurationString_ParsesDurationSeconds()
+    {
+        const string json = """
+            {
+              "entries": [
+                {
+                  "id": "abc123",
+                  "title": "Timed Video",
+                  "duration_string": "1:02:15"
+                }
+              ]
+            }
+            """;
+
+        var results = _parser.Parse(json);
+
+        Assert.Single(results);
+        Assert.Equal(3735, results[0].DurationSeconds);
+    }
+
+    [Fact]
+    public void Parse_MissingDuration_LeavesDurationNull()
+    {
+        const string json = """
+            {
+              "entries": [
+                {
+                  "id": "abc123",
+                  "title": "Untimed Video"
+                }
+              ]
+            }
+            """;
+
+        var results = _parser.Parse(json);
+
+        Assert.Single(results);
+        Assert.Null(results[0].DurationSeconds);
+    }
 }

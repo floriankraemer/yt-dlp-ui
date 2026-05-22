@@ -11,4 +11,5 @@ public sealed class YouTubeSearchResult
     public string? Channel { get; init; }
     public required string WatchUrl { get; init; }
     public string? ThumbnailUrl { get; init; }
+    public int? DurationSeconds { get; init; }
 }

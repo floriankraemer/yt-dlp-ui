@@ -46,7 +46,7 @@
                       BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                       CornerRadius="4">
                 <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
-                  <Border Grid.Column="0"
+                    <Border Grid.Column="0"
                           Width="120"
                           Height="68"
                           Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
@@ -60,6 +60,17 @@
                                  VerticalAlignment="Center"
                                  Opacity="0.5"
                                  IsVisible="{Binding IsLoadingThumbnail}" />
+                      <Border HorizontalAlignment="Right"
+                              VerticalAlignment="Bottom"
+                              Margin="4"
+                              Padding="4,2"
+                              Background="#CC000000"
+                              CornerRadius="2"
+                              IsVisible="{Binding DurationDisplay, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="{Binding DurationDisplay}"
+                                   FontSize="11"
+                                   Foreground="White" />
+                      </Border>
                     </Grid>
                   </Border>
 

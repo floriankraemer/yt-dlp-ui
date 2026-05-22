@@ -14,6 +14,26 @@ namespace YtDlpUi.UI.Tests;
 public sealed class SearchResultViewModelTests
 {
     [Fact]
+    public void Constructor_WithDuration_SetsDurationDisplay()
+    {
+        var profile = new DownloadProfile { Id = "default", Name = "Default" };
+        var vm = new SearchResultViewModel(
+            new YouTubeSearchResult
+            {
+                VideoId = "v1",
+                Title = "Title",
+                WatchUrl = "https://www.youtube.com/watch?v=v1",
+                DurationSeconds = 3735,
+            },
+            [profile],
+            profile,
+            CreateCoordinator(success: true),
+            Substitute.For<IThumbnailLoader>());
+
+        Assert.Equal("1:02:15", vm.DurationDisplay);
+    }
+
+    [Fact]
     public async Task AddToQueueAsync_Success_SetsStatusMessage()
     {
         var profile = new DownloadProfile { Id = "default", Name = "Default" };

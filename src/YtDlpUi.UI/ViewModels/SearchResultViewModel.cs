@@ -30,6 +30,7 @@ public sealed class SearchResultViewModel : ViewModelBase
         Title = result.Title;
         Channel = result.Channel ?? string.Empty;
         WatchUrl = result.WatchUrl;
+        DurationDisplay = DurationFormatter.Format(result.DurationSeconds);
         Profiles = profiles;
         _enqueueCoordinator = enqueueCoordinator;
         _thumbnailLoader = thumbnailLoader;
@@ -40,6 +41,7 @@ public sealed class SearchResultViewModel : ViewModelBase
     public string Title { get; }
     public string Channel { get; }
     public string WatchUrl { get; }
+    public string DurationDisplay { get; }
     public IReadOnlyList<DownloadProfile> Profiles { get; }
 
     public DownloadProfile? SelectedProfile
