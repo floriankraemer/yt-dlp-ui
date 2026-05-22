@@ -34,14 +34,27 @@ public sealed class DownloadFolderService
         }
     }
 
+    public bool EnsureExists(string path)
+    {
+        try
+        {
+            Directory.CreateDirectory(path);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public string ResolveWorkingDirectory(AppConfiguration config, DownloadProfile profile)
     {
         if (profile.Options.TryGetValue("-P", out var pathValue))
         {
-            var pathText = ReadOptionString(pathValue);
+            var pathText = ProfileOptionReader.ReadString(pathValue);
             if (!string.IsNullOrWhiteSpace(pathText) && TryNormalize(pathText, out var profilePath))
             {
-                Directory.CreateDirectory(profilePath);
+                EnsureExists(profilePath);
                 return profilePath;
             }
         }
@@ -50,15 +63,7 @@ public sealed class DownloadFolderService
             throw new InvalidOperationException(
                 "Download folder is not configured. Open Settings → Queue and set a download folder.");
 
-        Directory.CreateDirectory(downloadFolder);
+        EnsureExists(downloadFolder);
         return downloadFolder;
     }
-
-    private static string? ReadOptionString(object? value) =>
-        value switch
-        {
-            System.Text.Json.JsonElement { ValueKind: System.Text.Json.JsonValueKind.String } element => element.GetString(),
-            string text => text,
-            _ => Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture),
-        };
 }

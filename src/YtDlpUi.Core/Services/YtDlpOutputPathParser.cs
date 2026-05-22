@@ -1,13 +1,7 @@
-using System.Text.RegularExpressions;
-
 namespace YtDlpUi.Core.Services;
 
 public sealed class YtDlpOutputPathParser
 {
-    private static readonly Regex AnsiEscapeRegex = new(
-        @"\x1b\[[0-9;]*[A-Za-z]",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
     public bool TryAddCandidate(string line, ICollection<string> paths)
     {
         if (!TryExtractPath(line, out var path))
@@ -23,7 +17,7 @@ public sealed class YtDlpOutputPathParser
         if (string.IsNullOrWhiteSpace(line))
             return false;
 
-        line = StripAnsi(line).Trim();
+        line = ConsoleOutputSanitizer.StripAnsi(line).Trim();
         if (line.Length == 0 || line[0] != '[')
             return false;
 
@@ -66,6 +60,4 @@ public sealed class YtDlpOutputPathParser
 
         return value;
     }
-
-    private static string StripAnsi(string line) => AnsiEscapeRegex.Replace(line, string.Empty);
 }

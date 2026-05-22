@@ -1,5 +1,6 @@
 using NSubstitute;
 using YtDlpUi.Core.Abstractions;
+using YtDlpUi.Core.Constants;
 using YtDlpUi.Core.Models;
 using YtDlpUi.Core.Services;
 
@@ -19,9 +20,28 @@ public sealed class BinaryInstallServiceTests
             .Returns(BinaryInstallResult.Success("/tmp/yt-dlp"));
 
         var service = new BinaryInstallService(appConfig, new BinaryLocator(Path.GetTempPath()));
-        var result = await service.InstallAsync("yt-dlp", installer);
+        var result = await service.InstallAsync(ManagedBinary.YtDlp, installer);
         Assert.True(result.IsSuccess);
         Assert.Equal("/tmp/yt-dlp", config.YtDlpPath);
+    }
+
+    [Fact]
+    public async Task InstallAsync_UpdatesDenoPathAndEngine()
+    {
+        var appConfig = Substitute.For<IAppConfigStore>();
+        var config = new AppConfiguration();
+        appConfig.LoadAsync(Arg.Any<CancellationToken>()).Returns(config);
+
+        var installer = Substitute.For<IBinaryInstaller>();
+        installer.InstallAsync(Arg.Any<CancellationToken>())
+            .Returns(BinaryInstallResult.Success("/tmp/deno"));
+
+        var service = new BinaryInstallService(appConfig, new BinaryLocator(Path.GetTempPath()));
+        var result = await service.InstallAsync(ManagedBinary.Deno, installer);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("/tmp/deno", config.JsRuntimePath);
+        Assert.Equal(JsRuntimeEngines.Deno, config.JsRuntimeEngine);
     }
 
     [Fact]

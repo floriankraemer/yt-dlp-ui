@@ -88,6 +88,30 @@ public sealed class BinaryDownloadHelper
         return target;
     }
 
+    public static string ExtractDenoFromArchive(string archivePath, string extractDirectory)
+    {
+        Directory.CreateDirectory(extractDirectory);
+
+        if (!archivePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Deno release archive must be a zip file.");
+
+        ZipFile.ExtractToDirectory(archivePath, extractDirectory, overwriteFiles: true);
+
+        var executableName = OperatingSystem.IsWindows() ? "deno.exe" : "deno";
+        var deno = Directory.EnumerateFiles(extractDirectory, executableName, SearchOption.AllDirectories)
+            .FirstOrDefault(f => string.Equals(Path.GetFileName(f), executableName, StringComparison.OrdinalIgnoreCase));
+
+        if (deno is null)
+            throw new FileNotFoundException("deno binary not found in archive.");
+
+        var target = Path.Combine(extractDirectory, executableName);
+        if (!string.Equals(Path.GetFullPath(deno), Path.GetFullPath(target), StringComparison.OrdinalIgnoreCase))
+            File.Copy(deno, target, overwrite: true);
+
+        MakeExecutable(target);
+        return target;
+    }
+
     private static void ExtractTarXzWithProcess(string archivePath, string extractDirectory)
     {
         var psi = new System.Diagnostics.ProcessStartInfo

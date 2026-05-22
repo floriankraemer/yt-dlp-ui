@@ -9,10 +9,11 @@ public interface IThumbnailLoader
 
 public sealed class ThumbnailLoader : IThumbnailLoader
 {
+    public const int DecodeWidthPixels = 240;
+
     private readonly HttpClient _httpClient;
 
-    public ThumbnailLoader(HttpClient? httpClient = null) =>
-        _httpClient = httpClient ?? new HttpClient();
+    public ThumbnailLoader(HttpClient httpClient) => _httpClient = httpClient;
 
     public async Task<Bitmap?> LoadAsync(string url, CancellationToken cancellationToken = default)
     {
@@ -26,9 +27,13 @@ public sealed class ThumbnailLoader : IThumbnailLoader
                 return null;
 
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            return Bitmap.DecodeToWidth(stream, 240);
+            return Bitmap.DecodeToWidth(stream, DecodeWidthPixels);
         }
-        catch
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        catch (HttpRequestException)
         {
             return null;
         }

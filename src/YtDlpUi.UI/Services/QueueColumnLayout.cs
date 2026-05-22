@@ -1,10 +1,20 @@
+using Avalonia;
 using Avalonia.Controls;
 
 namespace YtDlpUi.UI.Services;
 
-public static class QueueColumnLayout
+public sealed class QueueColumnLayout
 {
-    public static IReadOnlyDictionary<string, double> DefaultWidths { get; } =
+    private QueueColumnLayout()
+    {
+    }
+
+    public const double MinColumnWidthPixels = 40;
+
+    public static readonly AttachedProperty<string?> LayoutKeyProperty =
+        AvaloniaProperty.RegisterAttached<QueueColumnLayout, DataGridColumn, string?>("LayoutKey");
+
+    public static readonly IReadOnlyDictionary<string, double> DefaultWidths =
         new Dictionary<string, double>(StringComparer.Ordinal)
         {
             ["status"] = 90,
@@ -17,19 +27,11 @@ public static class QueueColumnLayout
             ["actions"] = 260,
         };
 
-    public static string? GetColumnKey(DataGridColumn column) =>
-        column.Header?.ToString() switch
-        {
-            "Status" => "status",
-            "Title" => "title",
-            "URL" => "url",
-            "Progress" => "progress",
-            "Speed" => "speed",
-            "ETA" => "eta",
-            "Error" => "error",
-            "Actions" => "actions",
-            _ => null,
-        };
+    public static void SetLayoutKey(DataGridColumn column, string? value) =>
+        column.SetValue(LayoutKeyProperty, value);
+
+    public static string? GetLayoutKey(DataGridColumn column) =>
+        column.GetValue(LayoutKeyProperty);
 
     public static void Apply(DataGrid grid, IReadOnlyDictionary<string, double>? savedWidths)
     {
@@ -37,8 +39,8 @@ public static class QueueColumnLayout
 
         foreach (var column in grid.Columns)
         {
-            var key = GetColumnKey(column);
-            if (key is null || !widths.TryGetValue(key, out var pixels) || pixels < 40)
+            var key = GetLayoutKey(column);
+            if (key is null || !widths.TryGetValue(key, out var pixels) || pixels < MinColumnWidthPixels)
                 continue;
 
             column.Width = new DataGridLength(pixels, DataGridLengthUnitType.Pixel);
@@ -51,7 +53,7 @@ public static class QueueColumnLayout
 
         foreach (var column in grid.Columns)
         {
-            var key = GetColumnKey(column);
+            var key = GetLayoutKey(column);
             if (key is null)
                 continue;
 
@@ -61,7 +63,7 @@ public static class QueueColumnLayout
                     ? column.Width.DisplayValue
                     : 0;
 
-            if (pixels >= 40)
+            if (pixels >= MinColumnWidthPixels)
                 result[key] = Math.Round(pixels, 1);
         }
 

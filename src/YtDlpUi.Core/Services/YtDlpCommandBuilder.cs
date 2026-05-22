@@ -74,7 +74,7 @@ public sealed class YtDlpCommandBuilder
     private static void AppendOption(List<string> args, string flag, object value)
     {
         if (value is JsonElement element)
-            value = ConvertJsonElement(element) ?? value;
+            value = ProfileOptionReader.ConvertJsonElement(element) ?? value;
 
         switch (value)
         {
@@ -112,14 +112,4 @@ public sealed class YtDlpCommandBuilder
     private static string EscapeForDisplay(string arg) =>
         arg.Contains(' ', StringComparison.Ordinal) ? $"\"{arg}\"" : arg;
 
-    private static object? ConvertJsonElement(JsonElement element) =>
-        element.ValueKind switch
-        {
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            JsonValueKind.Number when element.TryGetInt32(out var i) => i,
-            JsonValueKind.Number when element.TryGetDouble(out var d) => d,
-            JsonValueKind.String => element.GetString(),
-            _ => element.GetRawText(),
-        };
 }

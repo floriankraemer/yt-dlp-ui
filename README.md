@@ -2,9 +2,7 @@
 
 Desktop UI for [yt-dlp](https://github.com/yt-dlp/yt-dlp): a download queue, profile-based settings, and optional yt-dlp/ffmpeg setup—without living on the command line.
 
-Built with **.NET 8** and **Avalonia 11**.
-
-> **Note:** The git checkout folder may still be named `youtube-dlc-ui`; the product name is **Yt-dlp-ui**.
+![Yt-dlp-ui main window](docs/screenshot.png)
 
 ## Features
 

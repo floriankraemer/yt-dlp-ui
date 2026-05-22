@@ -1,4 +1,5 @@
 using YtDlpUi.Core.Abstractions;
+using YtDlpUi.Core.Constants;
 using YtDlpUi.Core.Models;
 
 namespace YtDlpUi.Core.Services;
@@ -6,13 +7,13 @@ namespace YtDlpUi.Core.Services;
 public sealed class YtDlpBinaryInstaller : IBinaryInstaller
 {
     private readonly IBinaryReleaseSource _releaseSource;
-    private readonly BinaryLocator _binaryLocator;
+    private readonly IBinaryLocator _binaryLocator;
     private readonly BinaryDownloadHelper _downloadHelper;
     private readonly string _runtimeIdentifier;
 
     public YtDlpBinaryInstaller(
         IBinaryReleaseSource releaseSource,
-        BinaryLocator binaryLocator,
+        IBinaryLocator binaryLocator,
         BinaryDownloadHelper downloadHelper,
         string? runtimeIdentifier = null)
     {
@@ -24,9 +25,10 @@ public sealed class YtDlpBinaryInstaller : IBinaryInstaller
 
     public async Task<BinaryInstallResult> InstallAsync(CancellationToken cancellationToken = default)
     {
+        ReleaseAsset? asset = null;
         try
         {
-            var asset = _releaseSource.GetYtDlpAsset(_runtimeIdentifier);
+            asset = _releaseSource.GetYtDlpAsset(_runtimeIdentifier);
             var destination = _binaryLocator.GetBundledYtDlpPath();
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
 
@@ -35,13 +37,22 @@ public sealed class YtDlpBinaryInstaller : IBinaryInstaller
 
             return BinaryInstallResult.Success(destination);
         }
+        catch (UnsupportedPlatformException ex)
+        {
+            return BinaryInstallResult.Failure(
+                BinaryInstallMessages.FormatUnsupportedPlatform("yt-dlp", ex.RuntimeIdentifier, ex.ReleasePageUrl),
+                ex.ReleasePageUrl);
+        }
         catch (Exception ex)
         {
             var existing = _binaryLocator.GetBundledYtDlpPath();
             if (File.Exists(existing))
                 return BinaryInstallResult.Success(existing);
 
-            return BinaryInstallResult.Failure(ex.Message);
+            var releasePageUrl = asset?.ReleasePageUrl ?? BinaryReleaseManifest.YtDlpReleasePageUrl;
+            return BinaryInstallResult.Failure(
+                BinaryInstallMessages.FormatFailure("yt-dlp", _runtimeIdentifier, ex.Message, releasePageUrl),
+                releasePageUrl);
         }
     }
 }

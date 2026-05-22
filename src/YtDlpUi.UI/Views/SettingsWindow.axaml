@@ -10,26 +10,26 @@
         MinWidth="720"
         MinHeight="500"
         WindowStartupLocation="CenterOwner">
-  <DockPanel Margin="12">
-    <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
-      <TextBlock Text="{Binding StatusMessage}" Opacity="0.9" />
-      <TextBlock Text="{Binding ValidationError}"
-                 Foreground="{DynamicResource SystemControlErrorTextForegroundBrush}" />
-      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-        <Button Content="Cancel" Click="Cancel_Click" />
-        <Button Content="Save" Click="Save_Click" />
+  <Grid ColumnDefinitions="200,*">
+    <Border Grid.Column="0"
+            Padding="12,12,12,12"
+            BorderThickness="0,0,1,0"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+      <ListBox x:Name="SectionList" />
+    </Border>
+
+    <DockPanel Grid.Column="1" Margin="12">
+      <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
+        <TextBlock Text="{Binding StatusMessage}" Opacity="0.9" />
+        <TextBlock Text="{Binding ValidationError}"
+                   Foreground="{DynamicResource SystemControlErrorTextForegroundBrush}" />
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+          <Button Content="Cancel" Click="Cancel_Click" />
+          <Button Content="Save" Click="Save_Click" />
+        </StackPanel>
       </StackPanel>
-    </StackPanel>
 
-    <Grid ColumnDefinitions="200,*">
-      <Border Grid.Column="0"
-              Padding="0,0,12,0"
-              BorderThickness="0,0,1,0"
-              BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
-        <ListBox x:Name="SectionList" />
-      </Border>
-
-      <Panel x:Name="SectionPanelsHost" Grid.Column="1" Margin="12,0,0,0">
+      <Panel x:Name="SectionPanelsHost">
         <ScrollViewer x:Name="AppearancePanel" IsVisible="False">
           <StackPanel Spacing="16" Margin="8">
             <StackPanel Spacing="4">
@@ -50,19 +50,21 @@
           <StackPanel Spacing="16" Margin="8">
             <StackPanel Spacing="4">
               <TextBlock Text="Binaries" FontWeight="SemiBold" FontSize="16" />
-              <TextBlock Text="Set paths to yt-dlp, ffmpeg, and a JavaScript runtime for YouTube (required by yt-dlp since 2025.11.12). Leave blank to use tools installed via the main window or found on PATH."
+              <TextBlock Text="Set paths to yt-dlp, ffmpeg, and a JavaScript runtime for YouTube (required by yt-dlp since 2025.11.12). Install downloads the latest build for your operating system; Releases opens GitHub if you prefer to pick a version or install manually. Leave paths blank to use tools on PATH."
                          TextWrapping="Wrap"
                          Opacity="0.8" />
             </StackPanel>
 
             <StackPanel Spacing="8">
               <TextBlock Text="yt-dlp" FontWeight="SemiBold" />
-              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+              <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
                 <TextBox Grid.Column="0"
                          Watermark="C:\path\to\yt-dlp.exe or /usr/bin/yt-dlp"
                          Text="{Binding YtDlpPath}" />
                 <Button Grid.Column="1" Content="Browse…" Click="BrowseYtDlp_Click" />
                 <Button Grid.Column="2" Content="Test" Click="TestYtDlp_Click" />
+                <Button Grid.Column="3" Content="Install" Click="InstallYtDlp_Click" />
+                <Button Grid.Column="4" Content="Releases" Click="OpenYtDlpReleases_Click" />
               </Grid>
               <TextBlock FontSize="12" Opacity="0.75">
                 <Run Text="Resolved: " />
@@ -72,12 +74,14 @@
 
             <StackPanel Spacing="8">
               <TextBlock Text="ffmpeg" FontWeight="SemiBold" />
-              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+              <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
                 <TextBox Grid.Column="0"
                          Watermark="C:\path\to\ffmpeg.exe or /usr/bin/ffmpeg"
                          Text="{Binding FfmpegPath}" />
                 <Button Grid.Column="1" Content="Browse…" Click="BrowseFfmpeg_Click" />
                 <Button Grid.Column="2" Content="Test" Click="TestFfmpeg_Click" />
+                <Button Grid.Column="3" Content="Install" Click="InstallFfmpeg_Click" />
+                <Button Grid.Column="4" Content="Releases" Click="OpenFfmpegReleases_Click" />
               </Grid>
               <TextBlock FontSize="12" Opacity="0.75">
                 <Run Text="Resolved: " />
@@ -107,7 +111,7 @@
                          Watermark="Optional path to runtime executable (e.g. C:\path\to\deno.exe)"
                          Text="{Binding JsRuntimePath}" />
               </Grid>
-              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+              <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
                 <TextBlock Grid.Column="0"
                            FontSize="12"
                            Opacity="0.75"
@@ -123,12 +127,24 @@
                         Content="Test"
                         IsEnabled="{Binding IsJsRuntimePathEnabled}"
                         Click="TestJsRuntime_Click" />
+                <Button Grid.Column="3"
+                        Content="Install"
+                        IsEnabled="{Binding IsDenoInstallEnabled}"
+                        Click="InstallDeno_Click" />
+                <Button Grid.Column="4"
+                        Content="Releases"
+                        IsEnabled="{Binding IsDenoInstallEnabled}"
+                        Click="OpenDenoReleases_Click" />
               </Grid>
               <TextBlock FontSize="12" Opacity="0.75">
                 <Run Text="yt-dlp argument: " />
                 <Run Text="{Binding JsRuntimesArgumentPreview}" />
               </TextBlock>
             </StackPanel>
+
+            <ProgressBar Height="4"
+                         IsIndeterminate="True"
+                         IsVisible="{Binding IsInstalling}" />
           </StackPanel>
         </ScrollViewer>
 
@@ -180,6 +196,6 @@
           </StackPanel>
         </ScrollViewer>
       </Panel>
-    </Grid>
-  </DockPanel>
+    </DockPanel>
+  </Grid>
 </Window>

@@ -1,10 +1,10 @@
-using System.Diagnostics;
+using YtDlpUi.Core.Abstractions;
 using YtDlpUi.Core.Constants;
 using YtDlpUi.Core.Models;
 
 namespace YtDlpUi.Core.Services;
 
-public sealed class BinaryLocator
+public sealed class BinaryLocator : IBinaryLocator
 {
     private readonly string _configRoot;
 
@@ -12,7 +12,7 @@ public sealed class BinaryLocator
 
     public string? ResolveYtDlpPath(AppConfiguration config)
     {
-        var configured = NormalizeIfExists(config.YtDlpPath);
+        var configured = ExecutablePathResolver.NormalizeIfExists(config.YtDlpPath);
         if (configured is not null)
             return configured;
 
@@ -20,12 +20,12 @@ public sealed class BinaryLocator
         if (File.Exists(bundled))
             return bundled;
 
-        return FindOnPath(GetYtDlpExecutableName());
+        return ExecutablePathResolver.FindOnPath(GetYtDlpExecutableName());
     }
 
     public string? ResolveFfmpegPath(AppConfiguration config)
     {
-        var configured = NormalizeIfExists(config.FfmpegPath);
+        var configured = ExecutablePathResolver.NormalizeIfExists(config.FfmpegPath);
         if (configured is not null)
             return configured;
 
@@ -33,7 +33,7 @@ public sealed class BinaryLocator
         if (File.Exists(bundled))
             return bundled;
 
-        return FindOnPath("ffmpeg");
+        return ExecutablePathResolver.FindOnPath(GetFfmpegExecutableName());
     }
 
     public string GetBundledYtDlpPath() =>
@@ -42,34 +42,15 @@ public sealed class BinaryLocator
     public string GetBundledFfmpegPath() =>
         Path.Combine(_configRoot, AppPaths.BinFolderName, "ffmpeg", GetFfmpegExecutableName());
 
+    public string GetBundledDenoPath() =>
+        Path.Combine(_configRoot, AppPaths.BinFolderName, "deno", GetDenoExecutableName());
+
     private static string GetYtDlpExecutableName() =>
         OperatingSystem.IsWindows() ? "yt-dlp.exe" : "yt-dlp";
 
     private static string GetFfmpegExecutableName() =>
         OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg";
 
-    private static string? NormalizeIfExists(string? path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-            return null;
-
-        var fullPath = Path.GetFullPath(path);
-        return File.Exists(fullPath) ? fullPath : null;
-    }
-
-    private static string? FindOnPath(string executable)
-    {
-        var pathEnv = Environment.GetEnvironmentVariable("PATH");
-        if (string.IsNullOrWhiteSpace(pathEnv))
-            return null;
-
-        foreach (var folder in pathEnv.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-        {
-            var candidate = Path.Combine(folder.Trim(), executable);
-            if (File.Exists(candidate))
-                return Path.GetFullPath(candidate);
-        }
-
-        return null;
-    }
+    private static string GetDenoExecutableName() =>
+        OperatingSystem.IsWindows() ? "deno.exe" : "deno";
 }

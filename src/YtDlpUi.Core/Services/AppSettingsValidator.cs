@@ -6,9 +6,15 @@ namespace YtDlpUi.Core.Services;
 public sealed class AppSettingsValidator
 {
     private readonly ExtraArgsTokenizer _extraArgsTokenizer;
+    private readonly DownloadFolderService _downloadFolderService;
 
-    public AppSettingsValidator(ExtraArgsTokenizer extraArgsTokenizer) =>
+    public AppSettingsValidator(
+        ExtraArgsTokenizer extraArgsTokenizer,
+        DownloadFolderService downloadFolderService)
+    {
         _extraArgsTokenizer = extraArgsTokenizer;
+        _downloadFolderService = downloadFolderService;
+    }
 
     public IReadOnlyList<string> Validate(AppConfiguration config, DownloadProfile profile)
     {
@@ -33,17 +39,9 @@ public sealed class AppSettingsValidator
         if (!string.IsNullOrWhiteSpace(config.JsRuntimePath) && !File.Exists(config.JsRuntimePath))
             errors.Add("JavaScript runtime path does not exist.");
 
-        if (!string.IsNullOrWhiteSpace(config.DownloadFolder) && !Directory.Exists(config.DownloadFolder))
-        {
-            try
-            {
-                Directory.CreateDirectory(config.DownloadFolder);
-            }
-            catch
-            {
-                errors.Add("Download folder path is invalid or cannot be created.");
-            }
-        }
+        if (!string.IsNullOrWhiteSpace(config.DownloadFolder)
+            && !_downloadFolderService.TryNormalize(config.DownloadFolder, out _))
+            errors.Add("Download folder path is invalid.");
 
         try
         {

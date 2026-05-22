@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Platform.Storage;
+using YtDlpUi.UI.Services;
 
 namespace YtDlpUi.UI.Views;
 
@@ -22,20 +22,7 @@ public sealed partial class DownloadFolderSetupWindow : Window
 
     private async void Browse_Click(object? sender, RoutedEventArgs e)
     {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel?.StorageProvider is not { } storageProvider)
-            return;
-
-        var folders = await storageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-        {
-            Title = "Select download folder",
-            AllowMultiple = false,
-        });
-
-        if (folders.Count == 0)
-            return;
-
-        var path = folders[0].TryGetLocalPath();
+        var path = await App.Services.StoragePicker.PickFolderAsync(this);
         if (!string.IsNullOrWhiteSpace(path))
             FolderPathBox.Text = path;
     }

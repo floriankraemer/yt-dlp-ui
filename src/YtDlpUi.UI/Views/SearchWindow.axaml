@@ -34,70 +34,79 @@
       </Grid>
     </StackPanel>
 
-    <ScrollViewer>
-      <ItemsControl ItemsSource="{Binding Results}">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="vm:SearchResultViewModel">
-            <Border Padding="8"
-                    Margin="0,0,0,8"
-                    BorderThickness="1"
-                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
-                    CornerRadius="4">
-              <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
-                <Border Grid.Column="0"
-                        Width="120"
-                        Height="68"
-                        Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
-                        CornerRadius="2"
-                        ClipToBounds="True">
-                  <Grid>
-                    <Image Source="{Binding Thumbnail}"
-                           Stretch="UniformToFill" />
-                    <TextBlock Text="…"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               Opacity="0.5"
-                               IsVisible="{Binding IsLoadingThumbnail}" />
-                  </Grid>
-                </Border>
+    <ScrollViewer x:Name="ResultsScrollViewer"
+                  ScrollChanged="ResultsScrollViewer_ScrollChanged">
+      <StackPanel Spacing="8">
+        <ItemsControl ItemsSource="{Binding Results}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:SearchResultViewModel">
+              <Border Padding="8"
+                      Margin="0,0,0,8"
+                      BorderThickness="1"
+                      BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                      CornerRadius="4">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+                  <Border Grid.Column="0"
+                          Width="120"
+                          Height="68"
+                          Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                          CornerRadius="2"
+                          ClipToBounds="True">
+                    <Grid>
+                      <Image Source="{Binding Thumbnail}"
+                             Stretch="UniformToFill" />
+                      <TextBlock Text="…"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"
+                                 Opacity="0.5"
+                                 IsVisible="{Binding IsLoadingThumbnail}" />
+                    </Grid>
+                  </Border>
 
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
-                  <TextBlock Text="{Binding Title}"
-                             FontWeight="SemiBold"
-                             TextWrapping="Wrap"
-                             MaxLines="2" />
-                  <TextBlock Text="{Binding Channel}"
-                             Opacity="0.8"
-                             TextWrapping="Wrap" />
-                  <TextBlock Text="{Binding StatusMessage}"
-                             FontSize="12"
-                             Opacity="0.9" />
-                </StackPanel>
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                    <TextBlock Text="{Binding Title}"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap"
+                               MaxLines="2" />
+                    <TextBlock Text="{Binding Channel}"
+                               Opacity="0.8"
+                               TextWrapping="NoWrap"
+                               TextTrimming="CharacterEllipsis"
+                               IsVisible="{Binding Channel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Text="{Binding StatusMessage}"
+                               FontSize="12"
+                               Opacity="0.9" />
+                  </StackPanel>
 
-                <ComboBox Grid.Column="2"
-                          MinWidth="180"
-                          MaxWidth="220"
-                          ItemsSource="{Binding Profiles}"
-                          SelectedItem="{Binding SelectedProfile}"
-                          PlaceholderText="Profile"
-                          VerticalAlignment="Center">
-                  <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="models:DownloadProfile">
-                      <TextBlock Text="{Binding Name}" />
-                    </DataTemplate>
-                  </ComboBox.ItemTemplate>
-                </ComboBox>
+                  <ComboBox Grid.Column="2"
+                            MinWidth="180"
+                            MaxWidth="220"
+                            ItemsSource="{Binding Profiles}"
+                            SelectedItem="{Binding SelectedProfile}"
+                            PlaceholderText="Profile"
+                            VerticalAlignment="Center">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="models:DownloadProfile">
+                        <TextBlock Text="{Binding Name}" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
 
-                <Button Grid.Column="3"
-                        Content="Add to queue"
-                        VerticalAlignment="Center"
-                        IsEnabled="{Binding CanAdd}"
-                        Click="AddToQueue_Click" />
-              </Grid>
-            </Border>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
+                  <Button Grid.Column="3"
+                          Content="Add to queue"
+                          VerticalAlignment="Center"
+                          IsEnabled="{Binding CanAdd}"
+                          Click="AddToQueue_Click" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <ProgressBar Height="4"
+                     IsIndeterminate="True"
+                     IsVisible="{Binding IsLoadingMore}" />
+      </StackPanel>
     </ScrollViewer>
   </DockPanel>
 </Window>

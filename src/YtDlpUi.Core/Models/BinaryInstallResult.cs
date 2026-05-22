@@ -9,6 +9,8 @@ public sealed class BinaryInstallResult
     public static BinaryInstallResult Success(string path) =>
         new() { IsSuccess = true, InstalledPath = path };
 
-    public static BinaryInstallResult Failure(string error) =>
-        new() { IsSuccess = false, Error = error };
+    public string? ManualDownloadUrl { get; init; }
+
+    public static BinaryInstallResult Failure(string error, string? manualDownloadUrl = null) =>
+        new() { IsSuccess = false, Error = error, ManualDownloadUrl = manualDownloadUrl };
 }

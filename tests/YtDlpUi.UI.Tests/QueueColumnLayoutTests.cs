@@ -30,22 +30,30 @@ public sealed class QueueColumnLayoutTests
 
         QueueColumnLayout.Apply(grid, saved);
 
-        var title = grid.Columns.First(c => QueueColumnLayout.GetColumnKey(c) == "title");
+        var title = grid.Columns.First(c => QueueColumnLayout.GetLayoutKey(c) == "title");
         Assert.Equal(400, title.Width.DisplayValue);
     }
 
     private static DataGrid CreateSampleGrid()
     {
         var grid = new DataGrid { AutoGenerateColumns = false };
-        grid.Columns.Add(new DataGridTextColumn { Header = "Status", Width = Pixels(90) });
-        grid.Columns.Add(new DataGridTextColumn { Header = "Title", Width = Pixels(220) });
-        grid.Columns.Add(new DataGridTextColumn { Header = "URL", Width = Pixels(280) });
-        grid.Columns.Add(new DataGridTemplateColumn { Header = "Progress", Width = Pixels(140) });
-        grid.Columns.Add(new DataGridTextColumn { Header = "Speed", Width = Pixels(80) });
-        grid.Columns.Add(new DataGridTextColumn { Header = "ETA", Width = Pixels(80) });
-        grid.Columns.Add(new DataGridTextColumn { Header = "Error", Width = Pixels(220) });
-        grid.Columns.Add(new DataGridTemplateColumn { Header = "Actions", Width = Pixels(200) });
+        grid.Columns.Add(CreateColumn<DataGridTextColumn>("status", 90));
+        grid.Columns.Add(CreateColumn<DataGridTextColumn>("title", 220));
+        grid.Columns.Add(CreateColumn<DataGridTextColumn>("url", 280));
+        grid.Columns.Add(CreateColumn<DataGridTemplateColumn>("progress", 140));
+        grid.Columns.Add(CreateColumn<DataGridTextColumn>("speed", 80));
+        grid.Columns.Add(CreateColumn<DataGridTextColumn>("eta", 80));
+        grid.Columns.Add(CreateColumn<DataGridTextColumn>("error", 220));
+        grid.Columns.Add(CreateColumn<DataGridTemplateColumn>("actions", 200));
         return grid;
+    }
+
+    private static T CreateColumn<T>(string key, double width)
+        where T : DataGridColumn, new()
+    {
+        var column = new T { Width = Pixels(width) };
+        QueueColumnLayout.SetLayoutKey(column, key);
+        return column;
     }
 
     private static DataGridLength Pixels(double value) =>

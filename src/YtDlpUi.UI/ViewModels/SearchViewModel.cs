@@ -16,6 +16,8 @@ public sealed class SearchViewModel : ViewModelBase
 
     private string _searchQuery = string.Empty;
     private bool _isSearching;
+    private bool _isLoadingMore;
+    private bool _canLoadMore;
     private string? _statusMessage;
     private string? _errorMessage;
     private CancellationTokenSource? _thumbnailLoadCts;
@@ -51,6 +53,18 @@ public sealed class SearchViewModel : ViewModelBase
         private set => SetProperty(ref _isSearching, value);
     }
 
+    public bool IsLoadingMore
+    {
+        get => _isLoadingMore;
+        private set => SetProperty(ref _isLoadingMore, value);
+    }
+
+    public bool CanLoadMore
+    {
+        get => _canLoadMore;
+        private set => SetProperty(ref _canLoadMore, value);
+    }
+
     public string? StatusMessage
     {
         get => _statusMessage;
@@ -72,59 +86,89 @@ public sealed class SearchViewModel : ViewModelBase
 
     public async Task RefreshProfilesAsync()
     {
-        var profiles = (await _profileStore.ListAsync())
-            .OrderBy(profile => profile.Name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
+        var profiles = await ProfileListLoader.LoadOrderedAsync(_profileStore);
         Profiles.Clear();
         foreach (var profile in profiles)
             Profiles.Add(profile);
     }
 
-    public async Task SearchAsync()
+    public Task SearchAsync() => FetchResultsAsync(reset: true);
+
+    public Task LoadMoreAsync() => FetchResultsAsync(reset: false);
+
+    private async Task FetchResultsAsync(bool reset)
     {
-        ErrorMessage = null;
-        StatusMessage = null;
-        CancelThumbnailLoads();
-
-        if (string.IsNullOrWhiteSpace(SearchQuery))
+        if (reset)
         {
-            ErrorMessage = "Enter a search query.";
-            return;
-        }
+            ErrorMessage = null;
+            StatusMessage = null;
+            CancelThumbnailLoads();
 
-        IsSearching = true;
-        Results.Clear();
-        OnPropertyChanged(nameof(HasResults));
+            if (string.IsNullOrWhiteSpace(SearchQuery))
+            {
+                ErrorMessage = "Enter a search query.";
+                return;
+            }
+
+            IsSearching = true;
+            Results.Clear();
+            CanLoadMore = false;
+            OnPropertyChanged(nameof(HasResults));
+        }
+        else
+        {
+            if (!CanLoadMore || IsSearching || IsLoadingMore)
+                return;
+
+            ErrorMessage = null;
+            IsLoadingMore = true;
+        }
 
         try
         {
-            var page = await _searchService.SearchAsync(SearchQuery);
+            var skip = reset ? 0 : Results.Count;
+            var page = await _searchService.SearchAsync(SearchQuery, skip);
             var config = await _appConfigStore.LoadAsync();
             var defaultProfile = Profiles.FirstOrDefault(p => p.Id == config.ActiveProfileId)
                 ?? Profiles.FirstOrDefault();
             var profileList = Profiles.ToList();
+            var existingIds = Results.Select(r => r.Result.VideoId).ToHashSet(StringComparer.Ordinal);
 
+            var newRows = new List<SearchResultViewModel>();
             foreach (var result in page.Results)
             {
+                if (!existingIds.Add(result.VideoId))
+                    continue;
+
                 var row = new SearchResultViewModel(
                     result,
                     profileList,
                     defaultProfile,
                     _enqueueCoordinator,
                     _thumbnailLoader);
+                newRows.Add(row);
                 Results.Add(row);
             }
 
+            CanLoadMore = page.HasMoreResults && newRows.Count > 0;
             OnPropertyChanged(nameof(HasResults));
-            StatusMessage = Results.Count == 0
-                ? "No videos found."
-                : Results.Count == 1
-                    ? "1 video found."
-                    : $"{Results.Count} videos found.";
+            UpdateStatusMessage();
 
-            _thumbnailLoadCts = new CancellationTokenSource();
-            _ = LoadThumbnailsAsync(_thumbnailLoadCts.Token);
+            if (newRows.Count > 0)
+            {
+                if (reset)
+                {
+                    _thumbnailLoadCts?.Cancel();
+                    _thumbnailLoadCts?.Dispose();
+                    _thumbnailLoadCts = new CancellationTokenSource();
+                }
+                else
+                {
+                    _thumbnailLoadCts ??= new CancellationTokenSource();
+                }
+
+                _ = LoadThumbnailsAsync(newRows, _thumbnailLoadCts.Token);
+            }
         }
         catch (Exception ex)
         {
@@ -132,13 +176,31 @@ public sealed class SearchViewModel : ViewModelBase
         }
         finally
         {
-            IsSearching = false;
+            if (reset)
+                IsSearching = false;
+            else
+                IsLoadingMore = false;
         }
     }
 
-    private async Task LoadThumbnailsAsync(CancellationToken cancellationToken)
+    private void UpdateStatusMessage()
     {
-        foreach (var row in Results)
+        if (Results.Count == 0)
+        {
+            StatusMessage = CanLoadMore ? null : "No videos found.";
+            return;
+        }
+
+        StatusMessage = CanLoadMore
+            ? Results.Count == 1 ? "1 loaded" : $"{Results.Count} loaded"
+            : Results.Count == 1 ? "1 video found." : $"{Results.Count} videos found.";
+    }
+
+    private async Task LoadThumbnailsAsync(
+        IReadOnlyList<SearchResultViewModel> rows,
+        CancellationToken cancellationToken)
+    {
+        foreach (var row in rows)
         {
             if (cancellationToken.IsCancellationRequested)
                 return;

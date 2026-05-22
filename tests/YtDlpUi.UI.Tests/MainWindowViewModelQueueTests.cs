@@ -1,7 +1,6 @@
 using NSubstitute;
 using YtDlpUi.Core.Abstractions;
 using YtDlpUi.Core.Models;
-using YtDlpUi.Core.Services;
 using YtDlpUi.UI.ViewModels;
 
 namespace YtDlpUi.UI.Tests;
@@ -15,16 +14,7 @@ public sealed class MainWindowViewModelQueueTests
         var job = new DownloadJob { Url = "https://example.com", ProfileId = "default", Status = DownloadStatus.Running };
         queue.Jobs.Returns([job]);
 
-        var vm = new MainWindowViewModel(
-            queue,
-            Substitute.For<IAppConfigStore>(),
-            Substitute.For<IProfileStore>(),
-            ViewModelTestHelpers.CreateEnqueueCoordinator(queue),
-            new DownloadFolderService(),
-            new YouTubeUrlNormalizer(),
-            Substitute.For<IBinaryInstaller>(),
-            Substitute.For<IBinaryInstaller>(),
-            new BinaryLocator(Path.GetTempPath()));
+        var vm = ViewModelTestHelpers.CreateMainViewModel(queue);
 
         await vm.CancelJobAsync(new DownloadJobViewModel(job));
         await queue.Received(1).CancelAsync(job.Id, Arg.Any<CancellationToken>());
@@ -41,16 +31,7 @@ public sealed class MainWindowViewModelQueueTests
         appConfig.EnsureBootstrapAsync(Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
         appConfig.LoadAsync(Arg.Any<CancellationToken>()).Returns(new AppConfiguration());
 
-        var vm = new MainWindowViewModel(
-            queue,
-            appConfig,
-            Substitute.For<IProfileStore>(),
-            ViewModelTestHelpers.CreateEnqueueCoordinator(queue, appConfig),
-            new DownloadFolderService(),
-            new YouTubeUrlNormalizer(),
-            Substitute.For<IBinaryInstaller>(),
-            Substitute.For<IBinaryInstaller>(),
-            new BinaryLocator(Path.GetTempPath()));
+        var vm = ViewModelTestHelpers.CreateMainViewModel(queue, appConfig);
 
         await vm.InitializeAsync();
         var first = vm.Jobs[0];

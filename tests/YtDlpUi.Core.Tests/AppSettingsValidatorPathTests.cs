@@ -8,7 +8,7 @@ public sealed class AppSettingsValidatorPathTests
     [Fact]
     public void Validate_InvalidBinaryPaths_ReturnsErrors()
     {
-        var validator = new AppSettingsValidator(new ExtraArgsTokenizer());
+        var validator = new AppSettingsValidator(new ExtraArgsTokenizer(), new DownloadFolderService());
         var config = new AppConfiguration
         {
             YtDlpPath = "/does/not/exist/yt-dlp",

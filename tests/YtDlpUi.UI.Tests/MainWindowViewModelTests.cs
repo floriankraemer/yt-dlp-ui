@@ -1,8 +1,6 @@
 using NSubstitute;
 using YtDlpUi.Core.Abstractions;
 using YtDlpUi.Core.Models;
-using YtDlpUi.Core.Services;
-using YtDlpUi.UI.ViewModels;
 
 namespace YtDlpUi.UI.Tests;
 
@@ -11,22 +9,11 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void NormalizeUrlInput_StripsYouTubeQuery()
     {
-        var queue = Substitute.For<IDownloadQueueService>();
-        queue.Jobs.Returns(Array.Empty<DownloadJob>());
         var appConfig = Substitute.For<IAppConfigStore>();
         appConfig.LoadAsync(Arg.Any<CancellationToken>())
             .Returns(new AppConfiguration { ActiveProfileId = "default" });
 
-        var vm = new MainWindowViewModel(
-            queue,
-            appConfig,
-            Substitute.For<IProfileStore>(),
-            ViewModelTestHelpers.CreateEnqueueCoordinator(queue, appConfig),
-            new DownloadFolderService(),
-            new YouTubeUrlNormalizer(),
-            Substitute.For<IBinaryInstaller>(),
-            Substitute.For<IBinaryInstaller>(),
-            new BinaryLocator(Path.GetTempPath()));
+        var vm = ViewModelTestHelpers.CreateMainViewModel(appConfig: appConfig);
 
         vm.UrlInput = "https://www.youtube.com/watch?v=abc&t=1";
         vm.NormalizeUrlInput();
@@ -58,16 +45,7 @@ public sealed class MainWindowViewModelTests
         profileStore.GetAsync("default", Arg.Any<CancellationToken>())
             .Returns(new DownloadProfile { Id = "default", Name = "Default" });
 
-        var vm = new MainWindowViewModel(
-            queue,
-            appConfig,
-            profileStore,
-            ViewModelTestHelpers.CreateEnqueueCoordinator(queue, appConfig, profileStore),
-            new DownloadFolderService(),
-            new YouTubeUrlNormalizer(),
-            Substitute.For<IBinaryInstaller>(),
-            Substitute.For<IBinaryInstaller>(),
-            new BinaryLocator(Path.GetTempPath()));
+        var vm = ViewModelTestHelpers.CreateMainViewModel(queue, appConfig, profileStore);
 
         await vm.RefreshProfilesAsync();
         vm.UrlInput = "https://youtu.be/abc?si=x";
@@ -102,16 +80,7 @@ public sealed class MainWindowViewModelTests
         profileStore.GetAsync("audio-mp3", Arg.Any<CancellationToken>())
             .Returns(new DownloadProfile { Id = "audio-mp3", Name = "Download Audio as mp3" });
 
-        var vm = new MainWindowViewModel(
-            queue,
-            appConfig,
-            profileStore,
-            ViewModelTestHelpers.CreateEnqueueCoordinator(queue, appConfig, profileStore),
-            new DownloadFolderService(),
-            new YouTubeUrlNormalizer(),
-            Substitute.For<IBinaryInstaller>(),
-            Substitute.For<IBinaryInstaller>(),
-            new BinaryLocator(Path.GetTempPath()));
+        var vm = ViewModelTestHelpers.CreateMainViewModel(queue, appConfig, profileStore);
 
         await vm.RefreshProfilesAsync();
         vm.SelectedProfile = vm.Profiles.First(profile => profile.Id == "audio-mp3");

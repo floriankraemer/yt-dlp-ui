@@ -1,4 +1,5 @@
 using YtDlpUi.Core.Abstractions;
+using YtDlpUi.Core.Constants;
 using YtDlpUi.Core.Models;
 
 namespace YtDlpUi.Core.Services;
@@ -6,13 +7,13 @@ namespace YtDlpUi.Core.Services;
 public sealed class FfmpegBinaryInstaller : IBinaryInstaller
 {
     private readonly IBinaryReleaseSource _releaseSource;
-    private readonly BinaryLocator _binaryLocator;
+    private readonly IBinaryLocator _binaryLocator;
     private readonly BinaryDownloadHelper _downloadHelper;
     private readonly string _runtimeIdentifier;
 
     public FfmpegBinaryInstaller(
         IBinaryReleaseSource releaseSource,
-        BinaryLocator binaryLocator,
+        IBinaryLocator binaryLocator,
         BinaryDownloadHelper downloadHelper,
         string? runtimeIdentifier = null)
     {
@@ -24,9 +25,10 @@ public sealed class FfmpegBinaryInstaller : IBinaryInstaller
 
     public async Task<BinaryInstallResult> InstallAsync(CancellationToken cancellationToken = default)
     {
+        ReleaseAsset? asset = null;
         try
         {
-            var asset = _releaseSource.GetFfmpegAsset(_runtimeIdentifier);
+            asset = _releaseSource.GetFfmpegAsset(_runtimeIdentifier);
             var extractDir = Path.Combine(Path.GetDirectoryName(_binaryLocator.GetBundledFfmpegPath())!, "extract");
             var archivePath = Path.Combine(extractDir, asset.FileName);
 
@@ -43,13 +45,22 @@ public sealed class FfmpegBinaryInstaller : IBinaryInstaller
             BinaryDownloadHelper.MakeExecutable(target);
             return BinaryInstallResult.Success(target);
         }
+        catch (UnsupportedPlatformException ex)
+        {
+            return BinaryInstallResult.Failure(
+                BinaryInstallMessages.FormatUnsupportedPlatform("ffmpeg", ex.RuntimeIdentifier, ex.ReleasePageUrl),
+                ex.ReleasePageUrl);
+        }
         catch (Exception ex)
         {
             var existing = _binaryLocator.GetBundledFfmpegPath();
             if (File.Exists(existing))
                 return BinaryInstallResult.Success(existing);
 
-            return BinaryInstallResult.Failure(ex.Message);
+            var releasePageUrl = asset?.ReleasePageUrl ?? BinaryReleaseManifest.FfmpegReleasePageUrl;
+            return BinaryInstallResult.Failure(
+                BinaryInstallMessages.FormatFailure("ffmpeg", _runtimeIdentifier, ex.Message, releasePageUrl),
+                releasePageUrl);
         }
     }
 }
