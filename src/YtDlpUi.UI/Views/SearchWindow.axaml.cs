@@ -7,6 +7,8 @@ namespace YtDlpUi.UI.Views;
 
 public sealed partial class SearchWindow : Window
 {
+    private const double ScrollLoadThreshold = 200;
+
     private readonly SearchViewModel _viewModel;
 
     public SearchWindow()
@@ -20,8 +22,24 @@ public sealed partial class SearchWindow : Window
     private async void Search_Click(object? sender, RoutedEventArgs e) =>
         await _viewModel.SearchAsync();
 
-    private async void LoadMore_Click(object? sender, RoutedEventArgs e) =>
-        await _viewModel.LoadMoreAsync();
+    private async void ResultsScrollViewer_ScrollChanged(object? sender, ScrollChangedEventArgs e)
+    {
+        if (sender is not ScrollViewer scrollViewer)
+            return;
+
+        if (!_viewModel.CanLoadMore || _viewModel.IsSearching || _viewModel.IsLoadingMore)
+            return;
+
+        var extent = scrollViewer.Extent.Height;
+        if (extent <= 0)
+            return;
+
+        var nearBottom = scrollViewer.Offset.Y + scrollViewer.Viewport.Height
+            >= extent - ScrollLoadThreshold;
+
+        if (nearBottom)
+            await _viewModel.LoadMoreAsync();
+    }
 
     private async void SearchQuery_KeyDown(object? sender, KeyEventArgs e)
     {

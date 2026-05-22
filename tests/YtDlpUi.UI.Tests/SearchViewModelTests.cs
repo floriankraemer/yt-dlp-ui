@@ -101,8 +101,44 @@ public sealed class SearchViewModelTests
         await vm.LoadMoreAsync();
 
         Assert.Equal(40, vm.Results.Count);
-        Assert.Contains("Load more", vm.StatusMessage, StringComparison.Ordinal);
+        Assert.Equal("40 loaded", vm.StatusMessage);
         await searchService.Received(1).SearchAsync("cats", 20, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SearchAsync_FullPage_ShowsLoadedCount()
+    {
+        var searchService = Substitute.For<IYtDlpSearchService>();
+        searchService.SearchAsync(Arg.Any<string>(), 0, Arg.Any<CancellationToken>())
+            .Returns(new SearchResultPage
+            {
+                Query = "cats",
+                Results = CreateResults("v", 1, 20),
+                HasMoreResults = true,
+            });
+
+        var appConfig = Substitute.For<IAppConfigStore>();
+        appConfig.LoadAsync(Arg.Any<CancellationToken>())
+            .Returns(new AppConfiguration { ActiveProfileId = "default" });
+
+        var profileStore = Substitute.For<IProfileStore>();
+        profileStore.ListAsync(Arg.Any<CancellationToken>())
+            .Returns([new DownloadProfile { Id = "default", Name = "Default" }]);
+
+        var vm = new SearchViewModel(
+            searchService,
+            appConfig,
+            profileStore,
+            CreateEnqueueCoordinator(),
+            Substitute.For<IThumbnailLoader>());
+
+        await vm.InitializeAsync();
+        vm.SearchQuery = "cats";
+        await vm.SearchAsync();
+
+        Assert.Equal(20, vm.Results.Count);
+        Assert.True(vm.CanLoadMore);
+        Assert.Equal("20 loaded", vm.StatusMessage);
     }
 
     [Fact]

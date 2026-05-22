@@ -191,10 +191,9 @@ public sealed class SearchViewModel : ViewModelBase
             return;
         }
 
-        var countText = Results.Count == 1 ? "1 video" : $"{Results.Count} videos";
         StatusMessage = CanLoadMore
-            ? $"{countText} shown. Load more to see additional results."
-            : $"{countText} found.";
+            ? Results.Count == 1 ? "1 loaded" : $"{Results.Count} loaded"
+            : Results.Count == 1 ? "1 video found." : $"{Results.Count} videos found.";
     }
 
     private async Task LoadThumbnailsAsync(
