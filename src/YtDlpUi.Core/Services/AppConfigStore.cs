@@ -1,3 +1,7 @@
+// Copyright (C) 2026 Florian Krämer
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE for details.
+
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using YtDlpUi.Core.Abstractions;
