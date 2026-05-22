@@ -11,7 +11,22 @@ Open **Settings → Appearance** to choose **System**, **Light**, or **Dark**. *
 
 ## Binaries
 
-Open **Settings → Binaries** in the sidebar to set paths to **yt-dlp**, **ffmpeg**, and a **JavaScript runtime** for YouTube, browse for executables, and run **Test** on each. Leave a path blank to use a bundled install (from the main window) or tools on your `PATH`. The resolved path shows what the app will actually run.
+Open **Settings → Binaries** in the sidebar to set paths to **yt-dlp**, **ffmpeg**, and a **JavaScript runtime** for YouTube, browse for executables, and run **Test** on each. Leave a path blank to use a bundled install or tools on your `PATH`. The resolved path shows what the app will actually run.
+
+| Button | Action |
+|--------|--------|
+| **Install** | Downloads the latest release for your operating system and CPU architecture into `~/.yt-dlp-ui/bin/` |
+| **Releases** | Opens the official GitHub releases page in your browser |
+| **Browse** | Select an executable you downloaded or installed yourself |
+| **Test** | Verifies the resolved binary runs |
+
+If **Install** fails, the app shows an error with the release page URL and opens that page so you can download the correct file manually, then use **Browse** to point the app at it.
+
+Release pages:
+
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases)
+- [ffmpeg (yt-dlp FFmpeg-Builds)](https://github.com/yt-dlp/FFmpeg-Builds/releases)
+- [Deno](https://github.com/denoland/deno/releases) (when Deno is selected as the JS runtime)
 
 ### JavaScript runtime (YouTube)
 

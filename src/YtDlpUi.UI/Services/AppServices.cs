@@ -60,6 +60,7 @@ public sealed class AppServices
         BinaryInstallService = new BinaryInstallService(AppConfigStore, BinaryLocator);
         YtDlpInstaller = new YtDlpBinaryInstaller(ReleaseSource, BinaryLocator, DownloadHelper);
         FfmpegInstaller = new FfmpegBinaryInstaller(ReleaseSource, BinaryLocator, DownloadHelper);
+        DenoInstaller = new DenoBinaryInstaller(ReleaseSource, BinaryLocator, DownloadHelper);
         FileSystemLauncher = new FileSystemLauncherService();
         StoragePicker = new StoragePickerService();
     }
@@ -90,6 +91,7 @@ public sealed class AppServices
     public BinaryInstallService BinaryInstallService { get; }
     public IBinaryInstaller YtDlpInstaller { get; }
     public IBinaryInstaller FfmpegInstaller { get; }
+    public IBinaryInstaller DenoInstaller { get; }
     public IFileSystemLauncher FileSystemLauncher { get; }
     public StoragePickerService StoragePicker { get; }
 
@@ -124,5 +126,7 @@ public sealed class AppServices
         DownloadFolderService,
         YtDlpInstaller,
         FfmpegInstaller,
-        BinaryInstallService);
+        DenoInstaller,
+        BinaryInstallService,
+        FileSystemLauncher);
 }

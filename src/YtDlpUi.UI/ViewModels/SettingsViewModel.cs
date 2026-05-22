@@ -15,7 +15,9 @@ public sealed class SettingsViewModel : ViewModelBase
     private readonly DownloadFolderService _downloadFolderService;
     private readonly IBinaryInstaller _ytDlpInstaller;
     private readonly IBinaryInstaller _ffmpegInstaller;
+    private readonly IBinaryInstaller _denoInstaller;
     private readonly BinaryInstallService _binaryInstallService;
+    private readonly IFileSystemLauncher _fileSystemLauncher;
 
     private AppConfiguration _config = new();
     private DownloadProfile _profile = new() { Id = "default", Name = "Default" };
@@ -33,7 +35,9 @@ public sealed class SettingsViewModel : ViewModelBase
         DownloadFolderService downloadFolderService,
         IBinaryInstaller ytDlpInstaller,
         IBinaryInstaller ffmpegInstaller,
-        BinaryInstallService binaryInstallService)
+        IBinaryInstaller denoInstaller,
+        BinaryInstallService binaryInstallService,
+        IFileSystemLauncher fileSystemLauncher)
     {
         _coordinator = coordinator;
         _catalog = catalog;
@@ -41,7 +45,9 @@ public sealed class SettingsViewModel : ViewModelBase
         _downloadFolderService = downloadFolderService;
         _ytDlpInstaller = ytDlpInstaller;
         _ffmpegInstaller = ffmpegInstaller;
+        _denoInstaller = denoInstaller;
         _binaryInstallService = binaryInstallService;
+        _fileSystemLauncher = fileSystemLauncher;
         Profiles = new ObservableCollection<DownloadProfile>();
         OptionSections = new ObservableCollection<OptionSectionViewModel>();
     }
@@ -171,6 +177,7 @@ public sealed class SettingsViewModel : ViewModelBase
             Config.JsRuntimeEngine = string.IsNullOrEmpty(value.Id) ? null : value.Id;
             OnPropertyChanged(nameof(JsRuntimeDescription));
             OnPropertyChanged(nameof(IsJsRuntimePathEnabled));
+            OnPropertyChanged(nameof(IsDenoInstallEnabled));
             OnPropertyChanged(nameof(ResolvedJsRuntimePath));
             OnPropertyChanged(nameof(JsRuntimesArgumentPreview));
             UpdateCliPreview();
@@ -193,6 +200,9 @@ public sealed class SettingsViewModel : ViewModelBase
     public string JsRuntimeDescription => SelectedJsRuntimeEngine.Description;
 
     public bool IsJsRuntimePathEnabled => !string.IsNullOrEmpty(SelectedJsRuntimeEngine.Id);
+
+    public bool IsDenoInstallEnabled =>
+        string.Equals(SelectedJsRuntimeEngine.Id, JsRuntimeEngines.Deno, StringComparison.OrdinalIgnoreCase);
 
     public string ResolvedJsRuntimePath =>
         IsJsRuntimePathEnabled
@@ -239,6 +249,7 @@ public sealed class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(SelectedJsRuntimeEngine));
         OnPropertyChanged(nameof(JsRuntimeDescription));
         OnPropertyChanged(nameof(IsJsRuntimePathEnabled));
+        OnPropertyChanged(nameof(IsDenoInstallEnabled));
         OnPropertyChanged(nameof(ResolvedYtDlpPath));
         OnPropertyChanged(nameof(ResolvedFfmpegPath));
         OnPropertyChanged(nameof(ResolvedJsRuntimePath));
@@ -254,6 +265,15 @@ public sealed class SettingsViewModel : ViewModelBase
 
     public Task InstallFfmpegAsync() =>
         RunInstallAsync(ManagedBinary.Ffmpeg, _ffmpegInstaller, "ffmpeg");
+
+    public Task InstallDenoAsync() =>
+        RunInstallAsync(ManagedBinary.Deno, _denoInstaller, "Deno");
+
+    public void OpenYtDlpReleasesPage() => OpenReleasesPage(ManagedBinary.YtDlp);
+
+    public void OpenFfmpegReleasesPage() => OpenReleasesPage(ManagedBinary.Ffmpeg);
+
+    public void OpenDenoReleasesPage() => OpenReleasesPage(ManagedBinary.Deno);
 
     public async Task<bool> SaveAsync()
     {
@@ -377,19 +397,28 @@ public sealed class SettingsViewModel : ViewModelBase
             {
                 ValidationError = result.Error ?? $"Failed to install {displayName}.";
                 StatusMessage = null;
+                HandleInstallFailure(result);
                 return;
             }
 
             var (config, _) = await _coordinator.LoadAsync();
             Config = config;
 
-            if (binary == ManagedBinary.YtDlp)
+            switch (binary)
             {
-                YtDlpPath = config.YtDlpPath ?? string.Empty;
-            }
-            else
-            {
-                FfmpegPath = config.FfmpegPath ?? string.Empty;
+                case ManagedBinary.YtDlp:
+                    YtDlpPath = config.YtDlpPath ?? string.Empty;
+                    break;
+                case ManagedBinary.Ffmpeg:
+                    FfmpegPath = config.FfmpegPath ?? string.Empty;
+                    break;
+                case ManagedBinary.Deno:
+                    _selectedJsRuntime = JsRuntimeEngines.Find(JsRuntimeEngines.Deno) ?? JsRuntimeEngines.All[0];
+                    OnPropertyChanged(nameof(SelectedJsRuntimeEngine));
+                    JsRuntimePath = config.JsRuntimePath ?? string.Empty;
+                    OnPropertyChanged(nameof(ResolvedJsRuntimePath));
+                    OnPropertyChanged(nameof(JsRuntimesArgumentPreview));
+                    break;
             }
 
             ValidationError = null;
@@ -405,6 +434,31 @@ public sealed class SettingsViewModel : ViewModelBase
             IsInstalling = false;
         }
     }
+
+    private void HandleInstallFailure(BinaryInstallResult result)
+    {
+        if (string.IsNullOrWhiteSpace(result.ManualDownloadUrl))
+            return;
+
+        if (!_fileSystemLauncher.TryOpenUrl(result.ManualDownloadUrl))
+            ValidationError = $"{ValidationError}{Environment.NewLine}{BinaryInstallMessages.FormatBrowserOpenFailure()}";
+    }
+
+    private void OpenReleasesPage(ManagedBinary binary)
+    {
+        var url = GetReleasePageUrl(binary);
+        if (!_fileSystemLauncher.TryOpenUrl(url))
+            ValidationError = $"Could not open {url} in your browser.";
+    }
+
+    private static string GetReleasePageUrl(ManagedBinary binary) =>
+        binary switch
+        {
+            ManagedBinary.YtDlp => BinaryReleaseManifest.YtDlpReleasePageUrl,
+            ManagedBinary.Ffmpeg => BinaryReleaseManifest.FfmpegReleasePageUrl,
+            ManagedBinary.Deno => BinaryReleaseManifest.DenoReleasePageUrl,
+            _ => BinaryReleaseManifest.YtDlpReleasePageUrl,
+        };
 
     private void RebuildOptionSections()
     {

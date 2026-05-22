@@ -11,4 +11,6 @@ public interface IBinaryLocator
     string GetBundledYtDlpPath();
 
     string GetBundledFfmpegPath();
+
+    string GetBundledDenoPath();
 }

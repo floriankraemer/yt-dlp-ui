@@ -4,14 +4,14 @@ using YtDlpUi.Core.Models;
 
 namespace YtDlpUi.Core.Services;
 
-public sealed class FfmpegBinaryInstaller : IBinaryInstaller
+public sealed class DenoBinaryInstaller : IBinaryInstaller
 {
     private readonly IBinaryReleaseSource _releaseSource;
     private readonly IBinaryLocator _binaryLocator;
     private readonly BinaryDownloadHelper _downloadHelper;
     private readonly string _runtimeIdentifier;
 
-    public FfmpegBinaryInstaller(
+    public DenoBinaryInstaller(
         IBinaryReleaseSource releaseSource,
         IBinaryLocator binaryLocator,
         BinaryDownloadHelper downloadHelper,
@@ -28,19 +28,19 @@ public sealed class FfmpegBinaryInstaller : IBinaryInstaller
         ReleaseAsset? asset = null;
         try
         {
-            asset = _releaseSource.GetFfmpegAsset(_runtimeIdentifier);
-            var extractDir = Path.Combine(Path.GetDirectoryName(_binaryLocator.GetBundledFfmpegPath())!, "extract");
+            asset = _releaseSource.GetDenoAsset(_runtimeIdentifier);
+            var extractDir = Path.Combine(Path.GetDirectoryName(_binaryLocator.GetBundledDenoPath())!, "extract");
             var archivePath = Path.Combine(extractDir, asset.FileName);
 
             Directory.CreateDirectory(extractDir);
             await _downloadHelper.DownloadAsync(asset, archivePath, cancellationToken);
 
-            var ffmpegPath = BinaryDownloadHelper.ExtractFfmpegFromArchive(archivePath, extractDir);
-            var target = _binaryLocator.GetBundledFfmpegPath();
+            var denoPath = BinaryDownloadHelper.ExtractDenoFromArchive(archivePath, extractDir);
+            var target = _binaryLocator.GetBundledDenoPath();
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
 
-            if (!string.Equals(Path.GetFullPath(ffmpegPath), Path.GetFullPath(target), StringComparison.OrdinalIgnoreCase))
-                File.Copy(ffmpegPath, target, overwrite: true);
+            if (!string.Equals(Path.GetFullPath(denoPath), Path.GetFullPath(target), StringComparison.OrdinalIgnoreCase))
+                File.Copy(denoPath, target, overwrite: true);
 
             BinaryDownloadHelper.MakeExecutable(target);
             return BinaryInstallResult.Success(target);
@@ -48,18 +48,18 @@ public sealed class FfmpegBinaryInstaller : IBinaryInstaller
         catch (UnsupportedPlatformException ex)
         {
             return BinaryInstallResult.Failure(
-                BinaryInstallMessages.FormatUnsupportedPlatform("ffmpeg", ex.RuntimeIdentifier, ex.ReleasePageUrl),
+                BinaryInstallMessages.FormatUnsupportedPlatform("Deno", ex.RuntimeIdentifier, ex.ReleasePageUrl),
                 ex.ReleasePageUrl);
         }
         catch (Exception ex)
         {
-            var existing = _binaryLocator.GetBundledFfmpegPath();
+            var existing = _binaryLocator.GetBundledDenoPath();
             if (File.Exists(existing))
                 return BinaryInstallResult.Success(existing);
 
-            var releasePageUrl = asset?.ReleasePageUrl ?? BinaryReleaseManifest.FfmpegReleasePageUrl;
+            var releasePageUrl = asset?.ReleasePageUrl ?? BinaryReleaseManifest.DenoReleasePageUrl;
             return BinaryInstallResult.Failure(
-                BinaryInstallMessages.FormatFailure("ffmpeg", _runtimeIdentifier, ex.Message, releasePageUrl),
+                BinaryInstallMessages.FormatFailure("Deno", _runtimeIdentifier, ex.Message, releasePageUrl),
                 releasePageUrl);
         }
     }

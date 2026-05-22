@@ -1,4 +1,5 @@
 using YtDlpUi.Core.Abstractions;
+using YtDlpUi.Core.Constants;
 using YtDlpUi.Core.Models;
 
 namespace YtDlpUi.Core.Services;
@@ -24,10 +25,19 @@ public sealed class BinaryInstallService
             return result;
 
         var config = await _appConfigStore.LoadAsync(cancellationToken);
-        if (binary == ManagedBinary.YtDlp)
-            config.YtDlpPath = result.InstalledPath;
-        else
-            config.FfmpegPath = result.InstalledPath;
+        switch (binary)
+        {
+            case ManagedBinary.YtDlp:
+                config.YtDlpPath = result.InstalledPath;
+                break;
+            case ManagedBinary.Ffmpeg:
+                config.FfmpegPath = result.InstalledPath;
+                break;
+            case ManagedBinary.Deno:
+                config.JsRuntimeEngine = JsRuntimeEngines.Deno;
+                config.JsRuntimePath = result.InstalledPath;
+                break;
+        }
 
         await _appConfigStore.SaveAsync(config, cancellationToken);
         return BinaryInstallResult.Success(result.InstalledPath);

@@ -4,4 +4,5 @@ public enum ManagedBinary
 {
     YtDlp,
     Ffmpeg,
+    Deno,
 }

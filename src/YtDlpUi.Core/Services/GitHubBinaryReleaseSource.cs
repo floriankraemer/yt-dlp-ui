@@ -7,30 +7,11 @@ namespace YtDlpUi.Core.Services;
 public sealed class GitHubBinaryReleaseSource : IBinaryReleaseSource
 {
     public ReleaseAsset GetYtDlpAsset(string runtimeIdentifier) =>
-        new()
-        {
-            DownloadUrl = BinaryReleaseManifest.GetYtDlpDownloadUrl(runtimeIdentifier),
-            FileName = BinaryReleaseManifest.GetYtDlpAssetName(runtimeIdentifier),
-            MinimumSizeBytes = 100_000,
-        };
+        PlatformBinaryAssets.GetYtDlpAsset(runtimeIdentifier);
 
-    public ReleaseAsset GetFfmpegAsset(string runtimeIdentifier)
-    {
-        var (fileName, url) = runtimeIdentifier switch
-        {
-            _ when runtimeIdentifier.Contains("win", StringComparison.OrdinalIgnoreCase) =>
-                ("ffmpeg-master-latest-win64-gpl.zip", "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"),
-            _ when runtimeIdentifier.Contains("osx", StringComparison.OrdinalIgnoreCase) =>
-                ("ffmpeg-master-latest-macos64-gpl.zip", "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-macos64-gpl.zip"),
-            _ =>
-                ("ffmpeg-master-latest-linux64-gpl.tar.xz", "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"),
-        };
+    public ReleaseAsset GetFfmpegAsset(string runtimeIdentifier) =>
+        PlatformBinaryAssets.GetFfmpegAsset(runtimeIdentifier);
 
-        return new ReleaseAsset
-        {
-            DownloadUrl = url,
-            FileName = fileName,
-            MinimumSizeBytes = 1_000_000,
-        };
-    }
+    public ReleaseAsset GetDenoAsset(string runtimeIdentifier) =>
+        PlatformBinaryAssets.GetDenoAsset(runtimeIdentifier);
 }

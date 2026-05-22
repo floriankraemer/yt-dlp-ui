@@ -138,6 +138,18 @@ public sealed partial class SettingsWindow : Window
     private async void InstallFfmpeg_Click(object? sender, RoutedEventArgs e) =>
         await ViewModel.InstallFfmpegAsync();
 
+    private async void InstallDeno_Click(object? sender, RoutedEventArgs e) =>
+        await ViewModel.InstallDenoAsync();
+
+    private void OpenYtDlpReleases_Click(object? sender, RoutedEventArgs e) =>
+        ViewModel.OpenYtDlpReleasesPage();
+
+    private void OpenFfmpegReleases_Click(object? sender, RoutedEventArgs e) =>
+        ViewModel.OpenFfmpegReleasesPage();
+
+    private void OpenDenoReleases_Click(object? sender, RoutedEventArgs e) =>
+        ViewModel.OpenDenoReleasesPage();
+
     private async void TestYtDlp_Click(object? sender, RoutedEventArgs e)
     {
         var result = await ViewModel.TestYtDlpAsync();

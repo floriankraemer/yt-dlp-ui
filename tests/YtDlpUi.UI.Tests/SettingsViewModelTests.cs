@@ -2,6 +2,7 @@ using NSubstitute;
 using YtDlpUi.Core.Abstractions;
 using YtDlpUi.Core.Models;
 using YtDlpUi.Core.Services;
+using YtDlpUi.UI.Services;
 using YtDlpUi.UI.ViewModels;
 
 namespace YtDlpUi.UI.Tests;
@@ -90,21 +91,45 @@ public sealed class SettingsViewModelTests : IDisposable
     [Fact]
     public async Task InstallFfmpegAsync_SetsErrorOnFailure()
     {
+        const string releaseUrl = "https://github.com/yt-dlp/FFmpeg-Builds/releases";
         var installer = Substitute.For<IBinaryInstaller>();
         installer.InstallAsync(Arg.Any<CancellationToken>())
-            .Returns(BinaryInstallResult.Failure("network error"));
+            .Returns(BinaryInstallResult.Failure("network error", releaseUrl));
+
+        var launcher = Substitute.For<IFileSystemLauncher>();
+        launcher.TryOpenUrl(releaseUrl).Returns(true);
 
         var vm = ViewModelTestHelpers.CreateSettingsViewModel(
             _coordinator,
             _profiles,
             _root,
             ffmpegInstaller: installer,
-            binaryInstallService: ViewModelTestHelpers.CreateBinaryInstallService(_appConfig, new BinaryLocator(_root)));
+            binaryInstallService: ViewModelTestHelpers.CreateBinaryInstallService(_appConfig, new BinaryLocator(_root)),
+            fileSystemLauncher: launcher);
 
         await vm.LoadAsync();
         await vm.InstallFfmpegAsync();
 
         Assert.Equal("network error", vm.ValidationError);
+        launcher.Received(1).TryOpenUrl(releaseUrl);
+    }
+
+    [Fact]
+    public void OpenYtDlpReleasesPage_OpensReleaseUrl()
+    {
+        const string releaseUrl = "https://github.com/yt-dlp/yt-dlp/releases";
+        var launcher = Substitute.For<IFileSystemLauncher>();
+        launcher.TryOpenUrl(releaseUrl).Returns(true);
+
+        var vm = ViewModelTestHelpers.CreateSettingsViewModel(
+            _coordinator,
+            _profiles,
+            _root,
+            fileSystemLauncher: launcher);
+
+        vm.OpenYtDlpReleasesPage();
+
+        launcher.Received(1).TryOpenUrl(releaseUrl);
     }
 
     public void Dispose()

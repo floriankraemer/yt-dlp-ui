@@ -42,9 +42,15 @@ public sealed class BinaryLocator : IBinaryLocator
     public string GetBundledFfmpegPath() =>
         Path.Combine(_configRoot, AppPaths.BinFolderName, "ffmpeg", GetFfmpegExecutableName());
 
+    public string GetBundledDenoPath() =>
+        Path.Combine(_configRoot, AppPaths.BinFolderName, "deno", GetDenoExecutableName());
+
     private static string GetYtDlpExecutableName() =>
         OperatingSystem.IsWindows() ? "yt-dlp.exe" : "yt-dlp";
 
     private static string GetFfmpegExecutableName() =>
         OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg";
+
+    private static string GetDenoExecutableName() =>
+        OperatingSystem.IsWindows() ? "deno.exe" : "deno";
 }
