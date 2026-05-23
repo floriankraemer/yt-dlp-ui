@@ -33,12 +33,14 @@ public sealed class AppServices
         ReleaseSource = new GitHubBinaryReleaseSource();
         DownloadHelper = new BinaryDownloadHelper();
         ProcessRunner = new YtDlpProcessRunner();
+        YouTubeAccountService = new YouTubeAccountService(ConfigRoot, ProcessRunner);
         SearchResultParser = new YtDlpSearchResultParser();
         SearchService = new YtDlpSearchService(
             ProcessRunner,
             AppConfigStore,
             BinaryLocator,
             JsRuntimeLocator,
+            YouTubeAccountService,
             SearchResultParser);
         Queue = new DownloadQueueService(
             ProcessRunner,
@@ -51,7 +53,8 @@ public sealed class AppServices
             OutputPathParser,
             MetadataParser,
             DownloadFolderService,
-            JsRuntimeLocator);
+            JsRuntimeLocator,
+            YouTubeAccountService);
         EnqueueCoordinator = new DownloadEnqueueCoordinator(
             Queue,
             AppConfigStore,
@@ -87,6 +90,7 @@ public sealed class AppServices
     public IBinaryReleaseSource ReleaseSource { get; }
     public BinaryDownloadHelper DownloadHelper { get; }
     public IYtDlpProcessRunner ProcessRunner { get; }
+    public IYouTubeAccountService YouTubeAccountService { get; }
     public DownloadFolderService DownloadFolderService { get; }
     public IDownloadQueueService Queue { get; }
     public DownloadEnqueueCoordinator EnqueueCoordinator { get; }
@@ -121,7 +125,13 @@ public sealed class AppServices
         CommandBuilder,
         Validator,
         BinaryLocator,
-        JsRuntimeLocator);
+        JsRuntimeLocator,
+        YouTubeAccountService);
+
+    public YouTubeAccountViewModel CreateYouTubeAccountViewModel() => new(
+        YouTubeAccountService,
+        CreateSettingsCoordinator(),
+        AppConfigStore);
 
     public SettingsViewModel CreateSettingsViewModel() => new(
         CreateSettingsCoordinator(),

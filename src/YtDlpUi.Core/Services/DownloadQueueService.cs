@@ -25,6 +25,7 @@ public sealed class DownloadQueueService : IDownloadQueueService
     private readonly YtDlpMetadataParser _metadataParser;
     private readonly DownloadFolderService _downloadFolderService;
     private readonly IJsRuntimeLocator _jsRuntimeLocator;
+    private readonly IYouTubeAccountService _youTubeAccountService;
     private readonly ConcurrentDictionary<Guid, DownloadJob> _jobs = new();
     private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _jobCancellation = new();
     private readonly ConcurrentDictionary<Guid, byte> _activeWorkers = new();
@@ -44,7 +45,8 @@ public sealed class DownloadQueueService : IDownloadQueueService
         YtDlpOutputPathParser outputPathParser,
         YtDlpMetadataParser metadataParser,
         DownloadFolderService downloadFolderService,
-        IJsRuntimeLocator jsRuntimeLocator)
+        IJsRuntimeLocator jsRuntimeLocator,
+        IYouTubeAccountService youTubeAccountService)
     {
         _processRunner = processRunner;
         _commandBuilder = commandBuilder;
@@ -57,6 +59,7 @@ public sealed class DownloadQueueService : IDownloadQueueService
         _metadataParser = metadataParser;
         _downloadFolderService = downloadFolderService;
         _jsRuntimeLocator = jsRuntimeLocator;
+        _youTubeAccountService = youTubeAccountService;
         _concurrencyGate = CreateConcurrencyGate(_maxConcurrent);
         _ = Task.Run(PumpJobsAsync);
     }
@@ -245,7 +248,8 @@ public sealed class DownloadQueueService : IDownloadQueueService
                     throw new InvalidOperationException(ProfileFfmpegRequirement.FfmpegRequiredMessage);
 
                 var jsRuntimesArgument = JsRuntimeArgumentBuilder.Build(config, _jsRuntimeLocator);
-                var args = _commandBuilder.Build(profile, ffmpegPath, jsRuntimesArgument, job.Url);
+                var cookiesPath = _youTubeAccountService.ResolveCookiesPath();
+                var args = _commandBuilder.Build(profile, ffmpegPath, jsRuntimesArgument, cookiesPath, job.Url);
 
                 var workingDirectory = _downloadFolderService.ResolveWorkingDirectory(config, profile);
                 invocation = new YtDlpInvocation

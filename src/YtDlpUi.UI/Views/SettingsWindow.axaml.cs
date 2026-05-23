@@ -16,6 +16,7 @@ namespace YtDlpUi.UI.Views;
 public sealed partial class SettingsWindow : Window
 {
     private readonly SettingsViewModel _viewModel;
+    private readonly YouTubeAccountViewModel _youTubeAccountViewModel;
     private readonly Dictionary<string, Control> _sectionPanels = new();
     private readonly List<string> _sectionOrder = [];
 
@@ -23,10 +24,13 @@ public sealed partial class SettingsWindow : Window
     {
         InitializeComponent();
         _viewModel = App.Services.CreateSettingsViewModel();
+        _youTubeAccountViewModel = App.Services.CreateYouTubeAccountViewModel();
         DataContext = _viewModel;
+        YouTubeAccountPanel.DataContext = _youTubeAccountViewModel;
         Opened += async (_, _) =>
         {
             await _viewModel.LoadAsync();
+            _youTubeAccountViewModel.Refresh();
             ProfilesList.ItemTemplate = new FuncDataTemplate<DownloadProfile>((profile, _) =>
                 new TextBlock { Text = profile?.Name ?? string.Empty });
             InitializeSections();
@@ -48,6 +52,7 @@ public sealed partial class SettingsWindow : Window
         RegisterSection("Profiles", ProfilesPanel);
         RegisterSection("Appearance", AppearancePanel);
         RegisterSection("Binaries", BinariesPanel);
+        RegisterSection("YouTube Account", YouTubeAccountPanel);
         RegisterSection("Queue", QueuePanel);
         BuildOptionSections();
         RegisterSection("Advanced", AdvancedPanel);
@@ -203,4 +208,23 @@ public sealed partial class SettingsWindow : Window
 
     private async void DeleteProfile_Click(object? sender, RoutedEventArgs e) =>
         await ViewModel.DeleteProfileAsync();
+
+    private async void ImportCookies_Click(object? sender, RoutedEventArgs e)
+    {
+        var path = await App.Services.StoragePicker.PickCookiesFileAsync(this);
+        if (!string.IsNullOrWhiteSpace(path))
+            await _youTubeAccountViewModel.ImportAsync(path);
+    }
+
+    private async void SignOutYouTubeAccount_Click(object? sender, RoutedEventArgs e) =>
+        await _youTubeAccountViewModel.SignOutAsync();
+
+    private async void TestYouTubeAccount_Click(object? sender, RoutedEventArgs e) =>
+        await _youTubeAccountViewModel.TestAsync();
+
+    private void OpenCookiesHelp_Click(object? sender, RoutedEventArgs e)
+    {
+        if (!App.Services.FileSystemLauncher.TryOpenUrl(YouTubeAccountViewModel.CookiesExtensionHelpUrl))
+            _youTubeAccountViewModel.ErrorMessage = "Could not open the help page in your browser.";
+    }
 }

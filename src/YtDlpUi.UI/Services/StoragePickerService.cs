@@ -46,6 +46,29 @@ public sealed class StoragePickerService
         return files[0].TryGetLocalPath();
     }
 
+    public async Task<string?> PickCookiesFileAsync(Window owner, string title = "Import cookies.txt")
+    {
+        var storageProvider = GetStorageProvider(owner);
+        if (storageProvider is null)
+            return null;
+
+        var files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("Cookies") { Patterns = ["*.txt"] },
+                new FilePickerFileType("All files") { Patterns = ["*"] },
+            ],
+        });
+
+        if (files.Count == 0)
+            return null;
+
+        return files[0].TryGetLocalPath();
+    }
+
     private static IStorageProvider? GetStorageProvider(Window owner) =>
         TopLevel.GetTopLevel(owner)?.StorageProvider;
 

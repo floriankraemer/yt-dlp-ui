@@ -24,7 +24,8 @@ public sealed class SettingsCoordinatorTests : IDisposable
             new YtDlpCommandBuilder(catalog, new ExtraArgsTokenizer()),
             new AppSettingsValidator(new ExtraArgsTokenizer(), new DownloadFolderService()),
             new BinaryLocator(_root),
-            new JsRuntimeLocator());
+            new JsRuntimeLocator(),
+            new YouTubeAccountService(_root, new YtDlpProcessRunner()));
     }
 
     [Fact]
@@ -32,6 +33,23 @@ public sealed class SettingsCoordinatorTests : IDisposable
     {
         var result = await _coordinator.TestFfmpegAsync(new AppConfiguration());
         Assert.Contains("not found", result ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BuildCliPreview_IncludesCookiesWhenSignedIn()
+    {
+        var cookiesDir = Path.Combine(_root, YtDlpUi.Core.Constants.AppPaths.CookiesFolderName);
+        Directory.CreateDirectory(cookiesDir);
+        var cookiesPath = Path.Combine(cookiesDir, YtDlpUi.Core.Constants.AppPaths.YouTubeCookiesFileName);
+        File.WriteAllText(cookiesPath, "# Netscape HTTP Cookie File\n");
+
+        var config = new AppConfiguration();
+        var profile = new DownloadProfile { Id = "p", Name = "P" };
+
+        var preview = _coordinator.BuildCliPreview(config, profile);
+
+        Assert.Contains("--cookies", preview, StringComparison.Ordinal);
+        Assert.Contains(cookiesPath, preview, StringComparison.Ordinal);
     }
 
     [Fact]

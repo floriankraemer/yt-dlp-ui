@@ -15,6 +15,7 @@ public sealed class SettingsCoordinator
     private readonly AppSettingsValidator _validator;
     private readonly IBinaryLocator _binaryLocator;
     private readonly IJsRuntimeLocator _jsRuntimeLocator;
+    private readonly IYouTubeAccountService _youTubeAccountService;
 
     public SettingsCoordinator(
         IAppConfigStore appConfigStore,
@@ -22,7 +23,8 @@ public sealed class SettingsCoordinator
         YtDlpCommandBuilder commandBuilder,
         AppSettingsValidator validator,
         IBinaryLocator binaryLocator,
-        IJsRuntimeLocator jsRuntimeLocator)
+        IJsRuntimeLocator jsRuntimeLocator,
+        IYouTubeAccountService youTubeAccountService)
     {
         _appConfigStore = appConfigStore;
         _profileStore = profileStore;
@@ -30,6 +32,7 @@ public sealed class SettingsCoordinator
         _validator = validator;
         _binaryLocator = binaryLocator;
         _jsRuntimeLocator = jsRuntimeLocator;
+        _youTubeAccountService = youTubeAccountService;
     }
 
     public async Task<(AppConfiguration Config, IReadOnlyList<DownloadProfile> Profiles)> LoadAsync(
@@ -63,7 +66,17 @@ public sealed class SettingsCoordinator
             profile,
             _binaryLocator.ResolveFfmpegPath(config),
             jsRuntimesArgument,
+            _youTubeAccountService.ResolveCookiesPath(),
             "https://www.youtube.com/watch?v=example");
+    }
+
+    public Task<string?> TestYouTubeCookiesAsync(AppConfiguration config, CancellationToken cancellationToken = default)
+    {
+        var ytDlpPath = ResolveYtDlpPath(config);
+        if (ytDlpPath is null)
+            return Task.FromResult<string?>("yt-dlp executable not found. Set a path below or use Install.");
+
+        return _youTubeAccountService.TestCookiesAsync(ytDlpPath, cancellationToken);
     }
 
     public async Task<string?> TestYtDlpAsync(AppConfiguration config, CancellationToken cancellationToken = default)

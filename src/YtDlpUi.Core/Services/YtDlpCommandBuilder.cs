@@ -19,12 +19,20 @@ public sealed class YtDlpCommandBuilder
     }
 
     public IReadOnlyList<string> Build(DownloadProfile profile, string? ffmpegPath, string url) =>
-        Build(profile, ffmpegPath, jsRuntimesArgument: null, url);
+        Build(profile, ffmpegPath, jsRuntimesArgument: null, cookiesPath: null, url);
 
     public IReadOnlyList<string> Build(
         DownloadProfile profile,
         string? ffmpegPath,
         string? jsRuntimesArgument,
+        string url) =>
+        Build(profile, ffmpegPath, jsRuntimesArgument, cookiesPath: null, url);
+
+    public IReadOnlyList<string> Build(
+        DownloadProfile profile,
+        string? ffmpegPath,
+        string? jsRuntimesArgument,
+        string? cookiesPath,
         string url)
     {
         var args = new List<string>
@@ -37,6 +45,13 @@ public sealed class YtDlpCommandBuilder
             YtDlpProgressParser.PostprocessProgressTemplate,
             "--ignore-config",
         };
+
+        if (!string.IsNullOrWhiteSpace(cookiesPath) && File.Exists(cookiesPath))
+        {
+            args.Add("--cookies");
+            args.Add(cookiesPath);
+        }
+
         args.AddRange(YtDlpMetadataParser.BuildPrintArguments());
 
         if (!string.IsNullOrWhiteSpace(ffmpegPath))
@@ -70,10 +85,18 @@ public sealed class YtDlpCommandBuilder
     }
 
     public string BuildPreview(DownloadProfile profile, string? ffmpegPath, string url) =>
-        BuildPreview(profile, ffmpegPath, jsRuntimesArgument: null, url);
+        BuildPreview(profile, ffmpegPath, jsRuntimesArgument: null, cookiesPath: null, url);
 
     public string BuildPreview(DownloadProfile profile, string? ffmpegPath, string? jsRuntimesArgument, string url) =>
-        string.Join(' ', Build(profile, ffmpegPath, jsRuntimesArgument, url).Select(EscapeForDisplay));
+        BuildPreview(profile, ffmpegPath, jsRuntimesArgument, cookiesPath: null, url);
+
+    public string BuildPreview(
+        DownloadProfile profile,
+        string? ffmpegPath,
+        string? jsRuntimesArgument,
+        string? cookiesPath,
+        string url) =>
+        string.Join(' ', Build(profile, ffmpegPath, jsRuntimesArgument, cookiesPath, url).Select(EscapeForDisplay));
 
     private static void AppendOption(List<string> args, string flag, object value)
     {

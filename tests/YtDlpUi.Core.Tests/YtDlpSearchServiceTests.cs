@@ -47,7 +47,8 @@ public sealed class YtDlpSearchServiceTests : IDisposable
             new SearchRunner(json),
             appConfig,
             new BinaryLocator(_root),
-            new JsRuntimeLocator());
+            new JsRuntimeLocator(),
+            new YouTubeAccountService(_root, new YtDlpProcessRunner()));
 
         var page = await service.SearchAsync("test query");
 
@@ -63,7 +64,8 @@ public sealed class YtDlpSearchServiceTests : IDisposable
             new SearchRunner("{}"),
             new AppConfigStore(_root, new ProfileStore(_root)),
             new BinaryLocator(_root),
-            new JsRuntimeLocator());
+            new JsRuntimeLocator(),
+            new YouTubeAccountService(_root, new YtDlpProcessRunner()));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.SearchAsync("   "));
     }
@@ -81,6 +83,22 @@ public sealed class YtDlpSearchServiceTests : IDisposable
         Assert.Contains("--playlist-end", args);
         Assert.Contains("20", args);
         Assert.Equal($"ytsearch{YtDlpSearchService.PageSize}:hello world", args[^1]);
+    }
+
+    [Fact]
+    public void BuildSearchArguments_IncludesCookiesWhenProvided()
+    {
+        var cookiesPath = Path.Combine(_root, "youtube.txt");
+        File.WriteAllText(cookiesPath, "# Netscape HTTP Cookie File\n");
+
+        var args = YtDlpSearchService.BuildSearchArguments(
+            new AppConfiguration(),
+            new JsRuntimeLocator(),
+            cookiesPath,
+            "hello");
+
+        Assert.Contains("--cookies", args);
+        Assert.Contains(cookiesPath, args);
     }
 
     [Fact]
@@ -119,7 +137,8 @@ public sealed class YtDlpSearchServiceTests : IDisposable
             new SearchRunner(json),
             appConfig,
             new BinaryLocator(_root),
-            new JsRuntimeLocator());
+            new JsRuntimeLocator(),
+            new YouTubeAccountService(_root, new YtDlpProcessRunner()));
 
         var page = await service.SearchAsync("query");
 

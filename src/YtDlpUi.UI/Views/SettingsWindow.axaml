@@ -148,6 +148,51 @@
           </StackPanel>
         </ScrollViewer>
 
+        <ScrollViewer x:Name="YouTubeAccountPanel" IsVisible="False">
+          <StackPanel Spacing="16" Margin="8">
+            <StackPanel Spacing="4">
+              <TextBlock Text="YouTube Account" FontWeight="SemiBold" FontSize="16" />
+              <TextBlock Text="Sign in by importing a Netscape-format cookies.txt file (for example from the “Get cookies.txt LOCALLY” browser extension). yt-dlp uses these cookies for members-only, private, and age-restricted content."
+                         TextWrapping="Wrap"
+                         Opacity="0.8" />
+            </StackPanel>
+
+            <StackPanel Spacing="8" IsVisible="{Binding IsNotSignedIn}">
+              <TextBlock Text="{Binding Status}" FontWeight="SemiBold" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Import cookies.txt…" Click="ImportCookies_Click" IsEnabled="{Binding !IsBusy}" />
+                <Button Content="How to export cookies" Click="OpenCookiesHelp_Click" />
+              </StackPanel>
+            </StackPanel>
+
+            <StackPanel Spacing="8" IsVisible="{Binding IsSignedIn}">
+              <TextBlock Text="{Binding Status}" FontWeight="SemiBold" />
+              <TextBox IsReadOnly="True" Text="{Binding CookiesPathDisplay}" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Test" Click="TestYouTubeAccount_Click" IsEnabled="{Binding !IsBusy}" />
+                <Button Content="Replace cookies…" Click="ImportCookies_Click" IsEnabled="{Binding !IsBusy}" />
+                <Button Content="Sign out" Click="SignOutYouTubeAccount_Click" IsEnabled="{Binding !IsBusy}" />
+              </StackPanel>
+            </StackPanel>
+
+            <TextBlock Text="{Binding WarningMessage}"
+                       TextWrapping="Wrap"
+                       Opacity="0.85"
+                       IsVisible="{Binding WarningMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <TextBlock Text="{Binding TestResult}"
+                       TextWrapping="Wrap"
+                       Opacity="0.9"
+                       IsVisible="{Binding TestResult, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <TextBlock Text="{Binding ErrorMessage}"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource SystemControlErrorTextForegroundBrush}"
+                       IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <ProgressBar Height="4"
+                         IsIndeterminate="True"
+                         IsVisible="{Binding IsBusy}" />
+          </StackPanel>
+        </ScrollViewer>
+
         <ScrollViewer x:Name="QueuePanel" IsVisible="False">
           <StackPanel Spacing="16" Margin="8">
             <StackPanel Spacing="4">

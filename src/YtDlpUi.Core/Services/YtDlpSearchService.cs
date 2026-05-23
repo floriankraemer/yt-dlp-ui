@@ -15,6 +15,7 @@ public sealed class YtDlpSearchService : IYtDlpSearchService
     private readonly IAppConfigStore _appConfigStore;
     private readonly IBinaryLocator _binaryLocator;
     private readonly IJsRuntimeLocator _jsRuntimeLocator;
+    private readonly IYouTubeAccountService _youTubeAccountService;
     private readonly YtDlpSearchResultParser _parser;
 
     public YtDlpSearchService(
@@ -22,12 +23,14 @@ public sealed class YtDlpSearchService : IYtDlpSearchService
         IAppConfigStore appConfigStore,
         IBinaryLocator binaryLocator,
         IJsRuntimeLocator jsRuntimeLocator,
+        IYouTubeAccountService youTubeAccountService,
         YtDlpSearchResultParser? parser = null)
     {
         _processRunner = processRunner;
         _appConfigStore = appConfigStore;
         _binaryLocator = binaryLocator;
         _jsRuntimeLocator = jsRuntimeLocator;
+        _youTubeAccountService = youTubeAccountService;
         _parser = parser ?? new YtDlpSearchResultParser();
     }
 
@@ -50,7 +53,12 @@ public sealed class YtDlpSearchService : IYtDlpSearchService
             ?? throw new InvalidOperationException("yt-dlp was not found. Install it or set its path in Settings.");
 
         var trimmedQuery = query.Trim();
-        var args = BuildSearchArguments(config, _jsRuntimeLocator, trimmedQuery, skip);
+        var args = BuildSearchArguments(
+            config,
+            _jsRuntimeLocator,
+            _youTubeAccountService.ResolveCookiesPath(),
+            trimmedQuery,
+            skip);
         var invocation = new YtDlpInvocation
         {
             ExecutablePath = ytDlpPath,
@@ -85,6 +93,14 @@ public sealed class YtDlpSearchService : IYtDlpSearchService
         Models.AppConfiguration config,
         IJsRuntimeLocator jsRuntimeLocator,
         string query,
+        int skip = 0) =>
+        BuildSearchArguments(config, jsRuntimeLocator, cookiesPath: null, query, skip);
+
+    public static IReadOnlyList<string> BuildSearchArguments(
+        Models.AppConfiguration config,
+        IJsRuntimeLocator jsRuntimeLocator,
+        string? cookiesPath,
+        string query,
         int skip = 0)
     {
         var end = skip + PageSize;
@@ -99,6 +115,12 @@ public sealed class YtDlpSearchService : IYtDlpSearchService
             "--playlist-end",
             end.ToString(System.Globalization.CultureInfo.InvariantCulture),
         };
+
+        if (!string.IsNullOrWhiteSpace(cookiesPath) && File.Exists(cookiesPath))
+        {
+            args.Add("--cookies");
+            args.Add(cookiesPath);
+        }
 
         var jsRuntimes = JsRuntimeArgumentBuilder.Build(config, jsRuntimeLocator);
         if (!string.IsNullOrWhiteSpace(jsRuntimes))

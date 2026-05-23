@@ -36,7 +36,8 @@ public sealed class DownloadQueueServiceCancelTests : IDisposable
             new YtDlpOutputPathParser(),
             new YtDlpMetadataParser(),
             new DownloadFolderService(),
-            new JsRuntimeLocator());
+            new JsRuntimeLocator(),
+            new YouTubeAccountService(_root, new YtDlpProcessRunner()));
     }
 
     [Fact]

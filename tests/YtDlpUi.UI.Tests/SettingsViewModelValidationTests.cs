@@ -24,7 +24,8 @@ public sealed class SettingsViewModelValidationTests : IDisposable
             new YtDlpCommandBuilder(catalog, new ExtraArgsTokenizer()),
             ViewModelTestHelpers.CreateValidator(),
             new BinaryLocator(_root),
-            new JsRuntimeLocator());
+            new JsRuntimeLocator(),
+            new YouTubeAccountService(_root, new YtDlpProcessRunner()));
         _viewModel = ViewModelTestHelpers.CreateSettingsViewModel(coordinator, profiles, _root);
     }
 
